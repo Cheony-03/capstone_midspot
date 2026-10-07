@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결과 확인 - 약속 중간지점 추천</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 상단 헤더 -->
+        <header class="header-section" style="margin-bottom: 1.5rem; text-align: center;">
+            <h2 class="title" style="font-size: 1.5rem;">중간 지점 및 카페 추천</h2>
+            <p class="description">참여자들의 중간 지점에 위치한 추천 카페 목록입니다.</p>
+        </header>
+
+        <!-- 지도 또는 결과 표시 영역 -->
+        <div class="form-section" style="text-align: center;">
+            <div id="map" style="width: 100%; height: 250px; background-color: #e9ecef; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; color: #666;">
+                [ 카카오 지도 영역 ]
+            </div>
+
+            <div class="cafe-list-container" style="text-align: left; margin-bottom: 20px;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 10px;">📍 추천 카페 목록</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 8px; background: #fff;">
+                        <strong>스타벅스 익산점</strong> (중간지점에서 350m)
+                    </li>
+                    <li style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 8px; background: #fff;">
+                        <strong>투썸플레이스 대학로점</strong> (중간지점에서 500m)
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 이 카페로 결정! 버튼 (신규 추가) -->
+            <button type="button" class="create-btn" onclick="decideCafe()" style="background-color: #28a745; color: white; margin-bottom: 10px; font-weight: bold;">
+                ✨ 이 카페로 결정!
+            </button>
+
+            <!-- 기존 공유 및 길찾기 버튼 -->
+            <button type="button" class="create-btn" onclick="shareLocation()" style="background-color: #fee500; color: #333; font-weight: bold;">
+                🔗 장소 공유하기
+            </button>
+        </div>
+    </div>
+
+    <!-- 기능 구현 스크립트 -->
+    <script>
+        function decideCafe() {
+            alert("선택하신 카페로 약속 장소가 확정되었습니다!");
+            // TODO: 확정된 카페 정보를 백엔드로 전송하거나 상태 저장 로직 추가
+        }
+
+        function shareLocation() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                alert("결과 페이지 링크가 복사되었습니다!");
+            });
+        }
+    </script>
+</body>
+</html>

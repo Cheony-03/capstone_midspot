@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>위치 입력 - 약속 중간지점 추천</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 카카오 우편번호 API -->
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 상단: 참여 현황 표시 -->
+        <div class="status-bar">
+            <span class="status-text">현재 참여 현황</span>
+            <span class="status-count">1/3명 입력 완료</span>
+        </div>
+
+        <header class="header-section" style="margin-bottom: 1.5rem;">
+            <h2 class="title" style="font-size: 1.5rem;">출발 위치 입력</h2>
+            <p class="description" style="margin-bottom: 1rem;">본인의 이름과 출발할 장소를 알려주세요.</p>
+        </header>
+
+        <!-- 입력 폼 -->
+        <div class="form-section">
+            <div class="input-group">
+                <label for="userName">이름</label>
+                <input type="text" id="userName" class="input-field" placeholder="이름을 입력하세요">
+            </div>
+
+            <div class="input-group">
+                <label>출발 주소</label>
+                <div class="address-search-box">
+                    <input type="text" id="userAddress" class="input-field" placeholder="버튼을 눌러 주소를 검색하세요" readonly>
+                    <button type="button" class="search-btn" onclick="execDaumPostcode()">주소 검색</button>
+                </div>
+            </div>
+
+            <!-- 검색 반경 선택 버튼 -->
+            <div class="input-group">
+                <label>검색 반경</label>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="search-btn" onclick="selectRadius(1)" style="flex: 1; cursor: pointer; text-align: center;">1km</button>
+                    <button type="button" class="search-btn" onclick="selectRadius(3)" style="flex: 1; cursor: pointer; text-align: center;">3km</button>
+                    <button type="button" class="search-btn" onclick="selectRadius(5)" style="flex: 1; cursor: pointer; text-align: center;">5km</button>
+                </div>
+            </div>
+
+            <!-- 방 링크 복사 버튼 -->
+            <button type="button" class="create-btn" onclick="copyRoomLink()" style="background-color: #fee500; color: #333; margin-bottom: 12px; font-weight: bold;">📋 방 링크 복사하기</button>
+
+            <button id="submitLocationBtn" class="create-btn">위치 확인</button>
+        </div>
+    </div>
+
+    <!-- 기능 구현 스크립트 -->
+    <script>
+        function execDaumPostcode() {
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    document.getElementById("userAddress").value = data.address;
+                }
+            }).open();
+        }
+
+        // 반경 선택 함수 (필요 시 로직 추가)
+        function selectRadius(km) {
+            console.log(km + "km 선택됨");
+            // 선택된 버튼 강조 스타일링 로직 등을 추가할 수 있습니다.
+        }
+
+        // 방 링크 복사 함수
+        function copyRoomLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                alert("방 링크가 복사되었습니다!");
+            }).catch(err => {
+                console.error("링크 복사 실패", err);
+            });
+        }
+    </script>
+</body>
+</html>
