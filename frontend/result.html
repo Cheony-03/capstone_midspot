@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결과 확인 - 약속 중간지점 추천</title>
+    <link rel="stylesheet" href="style.css">
+    <script
+  type="text/javascript"
+  src="//dapi.kakao.com/v2/maps/sdk.js?appkey=01521887512e7784a60c5b6750b4cc05&autoload=false&libraries=services">
+</script>
+</head>
+<body>
+    <div class="container">
+        <!-- 상단 헤더 -->
+        <header class="header-section" style="margin-bottom: 1.5rem; text-align: center;">
+            <h2 class="title" style="font-size: 1.5rem;">중간 지점 및 카페 추천</h2>
+            <p class="description">참여자들의 중간 지점에 위치한 추천 카페 목록입니다.</p>
+        </header>
+
+        <!-- 지도 또는 결과 표시 영역 -->
+        <div class="form-section" style="text-align: center;">
+            <div id="map" style="width: 100%; height: 250px; background-color: #e9ecef; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; color: #666;">
+                [ 카카오 지도 영역 ]
+            </div>
+
+            <div class="cafe-list-container" style="text-align: left; margin-bottom: 20px;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 10px;">📍 추천 카페 목록 (클릭하여 확인)</h3>
+                <!-- 동적으로 채워질 카페 목록 영역 -->
+                <ul id="cafeList" style="list-style: none; padding: 0;">
+                    <li style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 8px; background: #fff; color: #666; text-align: center;">
+                        중간지점 주변 카페를 찾는 중입니다...
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 이 카페로 결정! 버튼 -->
+            <button type="button" class="create-btn" onclick="decideCafe()" style="background-color: #28a745; color: white; margin-bottom: 10px; font-weight: bold;">
+                ✨ 이 카페로 결정!
+            </button>
+
+            <!-- 기존 공유 및 길찾기 버튼 -->
+            <button type="button" class="create-btn" onclick="shareLocation()" style="background-color: #fee500; color: #333; font-weight: bold;">
+                🔗 장소 공유하기
+            </button>
+        </div>
+    </div>
+
+    <!-- 기능 구현 스크립트 -->
+    <script>
+        function decideCafe() {
+            alert("선택하신 카페로 약속 장소가 확정되었습니다!");
+            // TODO: 확정된 카페 정보를 백엔드로 전송하거나 상태 저장 로직 추가
+        }
+
+        function shareLocation() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                alert("결과 페이지 링크가 복사되었습니다!");
+            });
+        }
+    </script>
+
+    <script>
+    kakao.maps.load(function () {
+        const mapContainer = document.getElementById('map');
+
+        // 지도 초기 위치
+        const initialPosition = new kakao.maps.LatLng(
+            37.5665,
+            126.9780
+        );
+
+        const map = new kakao.maps.Map(mapContainer, {
+            center: initialPosition,
+            level: 7
+        });
+
+        const roomId =
+            new URLSearchParams(window.location.search).get('room')
+            || 'default_room';
+
+        // location.html에서 저장한 참가자 정보 불러오기
+        let participants = [];
+
+        try {
+            participants = JSON.parse(
+                localStorage.getItem('room_' + roomId) || '[]'
+            );
+        } catch (error) {
+            console.error('참가자 정보를 읽지 못했습니다.', error);
+        }
+
+        if (participants.length === 0) {
+            console.warn(
+                '이 브라우저에 저장된 참가자 정보가 없습니다.',
+                '먼저 location.html에서 주소를 등록해 주세요.'
+            );
+            document.getElementById('cafeList').innerHTML = `
+                <li style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 8px; background: #fff; color: #e74c3c; text-align: center;">
+                    등록된 참가자 정보가 없습니다. 주소를 먼저 입력해주세요!
+                </li>`;
+            return;
+        }
+
+        // 주소를 좌표로 변환
+        const geocoder = new kakao.maps.services.Geocoder();
+
+        const addressPromises = participants.map(function (person) {
+            return new Promise(function (resolve) {
+                if (!person.address) {
+                    resolve(null);
+                    return;
+                }
+
+                geocoder.addressSearch(
+                    person.address,
+                    function (result, status) {
+                        if (
+                            status === kakao.maps.services.Status.OK
+                            && result.length > 0
+                        ) {
+                            resolve({
+                                name: person.name,
+                                address: person.address,
+                                lat: Number(result[0].y),
+                                lng: Number(result[0].x)
+                            });
+                        } else {
+                            console.warn(
+                                '주소를 좌표로 변환하지 못했습니다:',
+                                person.address
+                            );
+                            resolve(null);
+                        }
+                    }
+                );
+            });
+        });
+
+        Promise.all(addressPromises).then(function (results) {
+            const locations = results.filter(Boolean);
+
+            if (locations.length === 0) {
+                alert(
+                    '주소를 좌표로 변환하지 못했습니다. ' +
+                    '참가자 주소를 확인해 주세요.'
+                );
+                return;
+            }
+
+            // 참가자 좌표의 평균으로 중간 지점 계산
+            const averageLat = locations.reduce(
+                (sum, item) => sum + item.lat, 0
+            ) / locations.length;
+
+            const averageLng = locations.reduce(
+                (sum, item) => sum + item.lng, 0
+            ) / locations.length;
+
+            const midpoint = new kakao.maps.LatLng(
+                averageLat,
+                averageLng
+            );
+
+            // [수정] 참가자별 위치 표시 및 클릭 시 인포윈도우 열기 기능 추가
+            locations.forEach(function (person) {
+                const position = new kakao.maps.LatLng(
+                    person.lat,
+                    person.lng
+                );
+
+                const marker = new kakao.maps.Marker({
+                    map: map,
+                    position: position,
+                    title: person.name || '참가자'
+                });
+
+                // 출발지 마커 클릭 시 나타날 인포윈도우 내용
+                const infowindow = new kakao.maps.InfoWindow({
+                    content: `<div style="padding:8px;font-size:12px;line-height:1.4;">
+                                <strong>출발지: ${person.name}</strong><br>
+                                <span style="color:#666;">${person.address}</span>
+                              </div>`
+                });
+
+                // 마커 클릭 이벤트 리스너 추가
+                kakao.maps.event.addListener(marker, 'click', function() {
+                    infowindow.open(map, marker);
+                });
+            });
+
+            // 계산된 중간 지점 표시
+            const midpointMarker = new kakao.maps.Marker({
+                map: map,
+                position: midpoint
+            });
+
+            const midpointInfo = new kakao.maps.InfoWindow({
+                content:
+                    '<div style="padding:8px;font-size:13px;font-weight:bold;color:#d9534f;">' +
+                    '📍 약속 중간 지점' +
+                    '</div>'
+            });
+
+            midpointInfo.open(map, midpointMarker);
+            map.setCenter(midpoint);
+            map.setLevel(7);
+
+            // 주변 카페 검색 및 목록 업데이트
+            const ps = new kakao.maps.services.Places(map);
+
+            ps.categorySearch('CE7', function(data, status) {
+                const cafeListEl = document.getElementById('cafeList');
+                
+                if (status === kakao.maps.services.Status.OK) {
+                    cafeListEl.innerHTML = ''; // 기존 안내 문구 초기화
+                    
+                    // 상위 최대 5개의 카페만 표시
+                    const cafes = data.slice(0, 5);
+                    
+                    cafes.forEach(function(cafe) {
+                        const li = document.createElement('li');
+                        li.style.cssText = 'padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 8px; background: #fff; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s;';
+                        
+                        // 마우스 호버 효과 스타일 추가
+                        li.onmouseover = function() { this.style.background = '#f8f9fa'; };
+                        li.onmouseout = function() { this.style.background = '#fff'; };
+
+                        // 카페 항목 클릭 시 카카오맵 상세페이지로 이동하거나 지도 중심 이동
+                        li.onclick = function(e) {
+                            // 상세보기 버튼을 직접 누른게 아니라면 지도의 해당 카페 위치로 중심 이동
+                            const moveLatLon = new kakao.maps.LatLng(cafe.y, cafe.x);
+                            map.setCenter(moveLatLon);
+                            map.setLevel(3); // 확대해서 보여주기
+                        };
+                        
+                        li.innerHTML = `
+                            <div>
+                                <strong style="font-size: 0.95rem; color: #333;">${cafe.place_name}</strong><br>
+                                <span style="font-size: 0.8rem; color: #666;">${cafe.road_address_name || cafe.address_name}</span>
+                            </div>
+                            <a href="${cafe.place_url}" target="_blank" onclick="event.stopPropagation();" style="font-size: 0.8rem; color: #007bff; text-decoration: none; padding: 6px 10px; border: 1px solid #007bff; border-radius: 4px; white-space: nowrap; background: #fff;">상세보기 ↗</a>
+                        `;
+                        cafeListEl.appendChild(li);
+
+                        // 지도에 카페 마커 표시 및 클릭 이벤트 연동
+                        const cafeMarker = new kakao.maps.Marker({
+                            map: map,
+                            position: new kakao.maps.LatLng(cafe.y, cafe.x),
+                            title: cafe.place_name
+                        });
+
+                        const cafeInfo = new kakao.maps.InfoWindow({
+                            content: `<div style="padding:8px;font-size:12px;"><strong>${cafe.place_name}</strong><br><a href="${cafe.place_url}" target="_blank" style="color:#007bff;">카카오맵 상세정보</a></div>`
+                        });
+
+                        kakao.maps.event.addListener(cafeMarker, 'click', function() {
+                            cafeInfo.open(map, cafeMarker);
+                        });
+                    });
+                } else {
+                    cafeListEl.innerHTML = `
+                        <li style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 8px; background: #fff; color: #666; text-align: center;">
+                            주변에 검색된 카페가 없습니다.
+                        </li>`;
+                }
+            }, {
+                location: midpoint,
+                radius: 2000 // 중간지점 반경 2km 이내 검색
+            });
+        });
+    });
+</script>
+</body>
+</html>
