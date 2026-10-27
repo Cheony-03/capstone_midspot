@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>참여자 입장 - 약속 중간지점 추천</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 카카오 우편번호/주소 검색 API 스크립트 -->
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 상단 헤더 섹션 -->
+        <header class="header-section" style="margin-bottom: 2rem; text-align: center;">
+            <h2 class="title" style="font-size: 1.6rem; margin-bottom: 0.5rem;">참여자 정보 입력</h2>
+            <p class="description">이름과 출발지를 입력하고 모임에 참여하세요!</p>
+        </header>
+
+        <!-- 참여자 정보 입력 폼 -->
+        <div class="form-section" style="margin-bottom: 1.5rem; background: #f9f9f9; padding: 1.5rem; border-radius: 8px;">
+            <form id="participantForm" onsubmit="addParticipant(event)">
+                <div style="margin-bottom: 1rem;">
+                    <label for="userName" style="display: block; font-weight: bold; margin-bottom: 0.3rem;">이름 (닉네임)</label>
+                    <input type="text" id="userName" required placeholder="이름을 입력하세요" style="width: 100%; padding: 8px; box-sizing: border-box;">
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="userAddress" style="display: block; font-weight: bold; margin-bottom: 0.3rem;">출발지 주소</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="userAddress" readonly required placeholder="주소 검색 버튼을 눌러주세요" style="flex: 1; padding: 8px; box-sizing: border-box; background-color: #fff;">
+                        <button type="button" onclick="execDaumPostcode()" style="padding: 8px 12px; cursor: pointer; background: #333; color: #fff; border: none; border-radius: 4px;">주소 검색</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="create-btn" style="width: 100%; background-color: #fee500; color: #333; font-weight: bold; padding: 10px; border: none; border-radius: 4px; cursor: pointer;">
+                    참여하기 / 출발지 저장
+                </button>
+            </form>
+        </div>
+
+        <!-- 참여자 목록 표시 섹션 -->
+        <div class="participant-list-section" style="background: #fff; padding: 1rem; border: 1px solid #ddd; border-radius: 8px;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem; color: #333;">👥 현재 참여자 목록 (<span id="participantCount">0</span>명)</h3>
+            <ul id="participantList" style="list-style: none; padding: 0; margin: 0; color: #555;">
+                <li style="padding: 6px 0; border-bottom: 1px solid #eee; color: #888;">아직 참여한 사람이 없습니다.</li>
+            </ul>
+        </div>
+
+        <!-- 다음 단계로 이동 버튼 (카테고리 선택 페이지로 연결) -->
+        <div style="margin-top: 20px; text-align: center;">
+            <button type="button" onclick="goToNextStep()" style="padding: 10px 20px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                카테고리 선택하러 가기 ➔
+            </button>
+        </div>
+    </div>
+
+    <!-- 참여자 관리 및 카카오 주소 API 스크립트 -->
+    
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/kakao.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/page2.js"></script>
+</body>
+</html>
