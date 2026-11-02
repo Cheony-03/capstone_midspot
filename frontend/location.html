@@ -3,281 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>출발지 및 카테고리 선택 - 약속 중간지점 추천</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- 카카오 우편번호 API -->
-    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <title>우리 어디서 만날까? - 위치 설정</title>
     <style>
-        /* 참여 멤버 카드 스타일 */
-        .participant-card {
-            background: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
         }
-        .participant-card .card-header {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #f8f9fa;
             color: #333;
-            font-size: 0.95rem;
         }
-        .participant-card .card-body {
-            font-size: 0.85rem;
-            color: #666;
-        }
-        /* 카테고리 선택 체크박스 영역 스타일 */
-        .category-box {
-            background: #fdfdfd;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 1.5rem;
-        }
-        .category-options {
+        .wrapper {
             display: flex;
-            gap: 15px;
-            margin-top: 8px;
+            width: 100%;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
         }
-        .category-options label {
-            font-size: 0.9rem;
-            color: #333;
-            cursor: pointer;
+        #map {
+            flex: 2.5;
+            height: 100%;
+            background-color: #e9ecef;
+            border-radius: 12px;
             display: flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
+            color: #868e96;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .control-panel {
+            flex: 1;
+            height: 100%;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #111;
+        }
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #4c6ef5;
+        }
+        .next-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: #4c6ef5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .next-btn:hover {
+            background-color: #3b5bdb;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header-section" style="margin-bottom: 1.5rem;">
-            <h2 class="title" style="font-size: 1.5rem;">출발 위치 및 카테고리 선택</h2>
-            <p class="description" style="margin-bottom: 1rem;">본인의 이름과 출발 주소를 입력하고, 선호하는 장소 카테고리를 선택해 주세요.</p>
-        </header>
 
-        <!-- 입력 폼 섹션 -->
-        <div class="form-section">
-            <!-- 이름 입력 -->
-            <div class="input-group">
-                <label for="userName">이름</label>
-                <input type="text" id="userName" class="input-field" placeholder="이름을 입력하세요">
-            </div>
+    <div class="wrapper">
+        <div id="map">지도 영역 (카카오맵/네이버 지도 연동)</div>
 
-            <!-- 출발 주소 검색 -->
-            <div class="input-group">
-                <label>출발 주소</label>
-                <div class="address-search-box">
-                    <input type="text" id="userAddress" class="input-field" placeholder="버튼을 눌러 주소를 검색하세요" readonly>
-                    <button type="button" class="search-btn" onclick="execDaumPostcode()">주소 검색</button>
+        <div class="control-panel">
+            <div>
+                <h2>어디서 만날지 위치를 설정해주세요</h2>
+                <div class="input-group">
+                    <div class="section-title">만날 장소 / 지역 검색</div>
+                    <input type="text" id="locationInput" placeholder="예: 서울시청, 강남역 등">
                 </div>
             </div>
 
-            <!-- 3번 카테고리 선택 페이지 요구사항 반영 (체크박스 투표 영역) -->
-            <div class="category-box">
-                <label style="font-weight: bold; color: #333; font-size: 0.95rem;">선호 장소 카테고리 선택 (다중 선택 가능)</label>
-                <div class="category-options">
-                    <label><input type="checkbox" name="prefCategory" value="cafe" checked> 카페</label>
-                    <label><input type="checkbox" name="prefCategory" value="restaurant"> 식당</label>
-                    <label><input type="checkbox" name="prefCategory" value="public"> 공공장소</label>
-                </div>
-            </div>
-
-            <!-- [저장하기] 버튼 -->
-            <button type="button" id="saveParticipantBtn" class="create-btn" style="background-color: #fee500; color: #333; font-weight: bold; margin-bottom: 1.5rem; cursor: pointer;">
-                💾 저장하기
-            </button>
-
-            <!-- 검색 반경 슬라이더 -->
-            <div class="input-group">
-                <label for="searchRadiusRange">
-                    검색 반경: <span id="radiusValueText" style="color: #007bff; font-weight: bold;">1.0 km</span>
-                </label>
-                <input type="range" id="searchRadiusRange" min="100" max="5000" step="100" value="1000" style="width: 100%; margin-top: 8px; cursor: pointer;" oninput="updateRadiusText(this.value)">
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #888; margin-top: 4px;">
-                    <span>100m</span>
-                    <span>2.5km</span>
-                    <span>5km</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- 중간지점 및 결과 찾기 버튼 -->
-        <div style="margin-top: 1rem;">
-            <button type="button" id="goToResultBtn" class="create-btn" style="background-color: #4CAF50; color: white; font-weight: bold; width: 100%; cursor: pointer;">
-                ☕ 중간지점 및 결과 보기
-            </button>
-        </div>
-
-        <!-- 현재 방에 참여한 사람 목록 및 카운트 표시 영역 -->
-        <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 2px dashed #eee;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-                <p style="font-weight: bold; font-size: 0.95rem; color: #333; margin: 0;">📋 참여 멤버 리스트</p>
-                <span class="status-count" id="participantCount" style="font-size: 0.85rem; font-weight: bold; color: #007bff;">0/3명 입력 완료</span>
-            </div>
-            <div id="participantListContainer">
-                <div style="text-align: center; color: #888; font-size: 0.85rem; padding: 1rem; background: #f9f9f9; border-radius: 8px;">
-                    아직 저장된 멤버가 없습니다.
-                </div>
-            </div>
+            <button class="next-btn" onclick="goToCategory()">저장 후 계속</button>
         </div>
     </div>
 
-    <!-- 기능 구현 자바스크립트 -->
     <script>
-        let currentRoomId = "default_room";
-
-        // 페이지가 열릴 때 실행
-        window.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomId = urlParams.get('room');
-            if (roomId) {
-                currentRoomId = roomId;
+        function goToCategory() {
+            const locationVal = document.getElementById('locationInput').value;
+            if (!locationVal.trim()) {
+                alert('위치나 지역을 입력해주세요!');
+                return;
             }
-            updateParticipantUI();
-            
-            // 초기 슬라이더 텍스트 설정
-            const rangeInput = document.getElementById('searchRadiusRange');
-            updateRadiusText(rangeInput.value);
-        });
-
-        // 1. 카카오 주소 검색 API 연동
-        function execDaumPostcode() {
-            new daum.Postcode({
-                oncomplete: function(data) {
-                    document.getElementById("userAddress").value = data.address;
-                }
-            }).open();
-        }
-
-        // 2. 슬라이더 값에 따라 텍스트 실시간 변경 함수
-        function updateRadiusText(val) {
-            const numVal = Number(val);
-            let text = "";
-            if (numVal < 1000) {
-                text = `${numVal}m`;
-            } else {
-                text = `${(numVal / 1000).toFixed(1)} km`;
-            }
-            document.getElementById('radiusValueText').innerText = text;
-        }
-
-        // 3. 참여 현황 및 카드 리스트 업데이트 함수 (서버 API 연동 고려 구조)
-        function updateParticipantUI() {
-            const savedData = JSON.parse(localStorage.getItem(`room_${currentRoomId}`)) || [];
-            
-            const countText = document.getElementById('participantCount');
-            countText.innerText = `${savedData.length}/3명 입력 완료`;
-
-            const container = document.getElementById('participantListContainer');
-            container.innerHTML = '';
-
-            if (savedData.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; color: #888; font-size: 0.85rem; padding: 1rem; background: #f9f9f9; border-radius: 8px;">
-                        아직 저장된 멤버가 없습니다.
-                    </div>
-                `;
-            } else {
-                savedData.forEach(p => {
-                    const card = document.createElement('div');
-                    card.className = 'participant-card';
-                    card.innerHTML = `
-                        <div class="card-header">
-                            <span>👤 ${p.name}</span>
-                            <span style="color: #007bff; font-size: 0.85rem;">반경: ${p.radius}</span>
-                        </div>
-                        <div class="card-body">
-                            📍 ${p.address} <br>
-                            <span style="color: #555; font-size: 0.8rem;">선호 카테고리: ${p.categories ? p.categories.join(', ') : '정보 없음'}</span>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
-            }
-        }
-
-        // 4. [저장하기] 버튼 클릭 이벤트
-        const saveBtn = document.getElementById('saveParticipantBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                const userName = document.getElementById('userName').value.trim();
-                const userAddress = document.getElementById('userAddress').value.trim();
-                const rangeVal = document.getElementById('searchRadiusRange').value;
-                
-                // 선택된 카테고리 값 수집
-                const selectedCategories = [];
-                document.querySelectorAll('input[name="prefCategory"]:checked').forEach(cb => {
-                    selectedCategories.push(cb.value);
-                });
-
-                const searchRadius = Number(rangeVal) < 1000 ? `${rangeVal}m` : `${(rangeVal / 1000).toFixed(1)}km`;
-
-                // 유효성 검사
-                if (!userName) {
-                    alert('이름을 입력해주세요!');
-                    document.getElementById('userName').focus();
-                    return;
-                }
-                if (!userAddress) {
-                    alert('출발 주소를 검색해주세요!');
-                    return;
-                }
-                if (selectedCategories.length === 0) {
-                    alert('선호하는 카테고리를 최소 1개 이상 선택해주세요!');
-                    return;
-                }
-
-                // 저장 로직 (추후 백엔드 API 연동 구조로 자리 유지)
-                let savedData = JSON.parse(localStorage.getItem(`room_${currentRoomId}`)) || [];
-                const existingIndex = savedData.findIndex(p => p.name === userName);
-                const newEntry = { 
-                    name: userName, 
-                    address: userAddress, 
-                    radius: searchRadius,
-                    categories: selectedCategories 
-                };
-
-                if (existingIndex >= 0) {
-                    savedData[existingIndex] = newEntry; // 수정
-                } else {
-                    if (savedData.length >= 3) {
-                        alert('이미 3명이 모두 참여했습니다!');
-                        return;
-                    }
-                    savedData.push(newEntry); // 추가
-                }
-
-                localStorage.setItem(`room_${currentRoomId}`, JSON.stringify(savedData));
-                updateParticipantUI();
-
-                alert(`${userName}님의 정보가 저장되었습니다!`);
-                
-                // 폼 초기화
-                document.getElementById('userName').value = '';
-                document.getElementById('userAddress').value = '';
-            });
-        }
-
-        // 5. [결과 보기] 버튼 클릭 이벤트 (결과 페이지로 이동)
-        const goToResultBtn = document.getElementById('goToResultBtn');
-        if (goToResultBtn) {
-            goToResultBtn.addEventListener('click', () => {
-                const savedData = JSON.parse(localStorage.getItem(`room_${currentRoomId}`)) || [];
-                
-                if (savedData.length === 0) {
-                    alert('최소 1명 이상의 출발지를 저장해주세요!');
-                    return;
-                }
-
-                const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-                window.location.href = `${baseUrl}result.html?room=${currentRoomId}`;
-            });
+            localStorage.setItem('selectedLocation', locationVal);
+            location.href = 'category.html';
         }
     </script>
 </body>

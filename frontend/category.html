@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우리 어디서 만날까? - 카테고리 및 투표</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100vh;
+            padding: 30px;
+        }
+        .container {
+            flex: 1;
+            width: 100%;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow-y: auto;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #111;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 12px;
+            margin-top: 20px;
+        }
+        .category-group, .place-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border: 1px solid #ced4da;
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 12px;
+            width: 20px;
+            height: 20px;
+        }
+        .item-label {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        .vote-count {
+            font-size: 15px;
+            color: #868e96;
+            font-weight: 500;
+        }
+        .highlight {
+            border-color: #4c6ef5;
+            background-color: #edf2ff;
+            font-weight: 600;
+        }
+        .highlight .vote-count {
+            color: #3b5bdb;
+        }
+        .next-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: #4c6ef5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background-color 0.2s;
+        }
+        .next-btn:hover {
+            background-color: #3b5bdb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="container">
+            <div>
+                <h2>어떤 장소를 원하시나요?</h2>
+
+                <div class="section-title">1. 카테고리 선택</div>
+                <div class="category-group">
+                    <label class="checkbox-item highlight">
+                        <span class="item-label">
+                            <input type="checkbox" name="category" value="cafe" checked onchange="updateVote(this)"> 카페
+                        </span>
+                        <span class="vote-count">12표</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <span class="item-label">
+                            <input type="checkbox" name="category" value="restaurant" onchange="updateVote(this)"> 식당
+                        </span>
+                        <span class="vote-count">5표</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <span class="item-label">
+                            <input type="checkbox" name="category" value="public" onchange="updateVote(this)"> 공공장소
+                        </span>
+                        <span class="vote-count">2표</span>
+                    </label>
+                </div>
+
+                <div class="section-title">2. 추천 장소 투표</div>
+                <div class="place-list">
+                    <label class="checkbox-item highlight">
+                        <span class="item-label">
+                            <input type="checkbox" name="place" value="place1" checked onchange="updateVote(this)"> 스타벅스 익산점
+                        </span>
+                        <span class="vote-count">15표 (다수결)</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <span class="item-label">
+                            <input type="checkbox" name="place" value="place2" onchange="updateVote(this)"> 투썸플레이스
+                        </span>
+                        <span class="vote-count">7표</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <span class="item-label">
+                            <input type="checkbox" name="place" value="place3" onchange="updateVote(this)"> 이디야커피
+                        </span>
+                        <span class="vote-count">4표</span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="next-btn" onclick="goToResult()">결과 페이지로 이동</button>
+        </div>
+    </div>
+
+    <script>
+        function updateVote(checkbox) {
+            const parent = checkbox.closest('.checkbox-item');
+            if (checkbox.checked) {
+                parent.classList.add('highlight');
+            } else {
+                parent.classList.remove('highlight');
+            }
+        }
+
+        function goToResult() {
+            location.href = 'result.html';
+        }
+    </script>
+</body>
+</html>
