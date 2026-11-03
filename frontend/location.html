@@ -91,6 +91,8 @@
     </style>
     <!-- 카카오 우편번호(주소) 검색 API -->
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <!-- 카카오 지도 SDK 로드 (autoload=false 적용) -->
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=01521887512e7784a60c5b6750b4cc05&autoload=false"></script>
 </head>
 <body>
 
@@ -132,8 +134,58 @@
     <script src="api.js"></script>
     <script>
         let currentRoomId = null;
+        let map = null;
+        let markers = [];
+
+        // 지도 초기화 함수
+        function initMap(lat = 37.566826, lng = 126.978656) {
+            const container = document.getElementById('map');
+            const options = {
+                center: new kakao.maps.LatLng(lat, lng),
+                level: 5
+            };
+            map = new kakao.maps.Map(container, options);
+        }
+
+        // 참여자 목록을 바탕으로 지도 중심 이동 및 마커 표시
+        function updateMapMarkers(people) {
+            if (!map) return;
+
+            // 기존 마커 제거
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            if (people.length === 0) return;
+
+            const bounds = new kakao.maps.LatLngBounds();
+
+            people.forEach(p => {
+                const coords = new kakao.maps.LatLng(p.latitude, p.longitude);
+                const marker = new kakao.maps.Marker({
+                    map: map,
+                    position: coords
+                });
+                
+                // 인포윈도우로 닉네임 표시
+                const infowindow = new kakao.maps.InfoWindow({
+                    content: `<div style="padding:5px;font-size:12px;">👤 ${p.nickname}</div>`
+                });
+                infowindow.open(map, marker);
+
+                markers.push(marker);
+                bounds.extend(coords);
+            });
+
+            // 모든 참여자가 보이도록 지도 범위 재설정
+            map.setBounds(bounds);
+        }
 
         window.addEventListener("DOMContentLoaded", async () => {
+            // 카카오맵 SDK 로드 완료 후 안전하게 초기화 실행
+            kakao.maps.load(() => {
+                initMap();
+            });
+
             currentRoomId = getCurrentRoomId();
             const infoEl = document.getElementById("roomInfo");
 
@@ -215,6 +267,9 @@
             try {
                 const people = await getParticipants(currentRoomId);
                 countEl.innerText = people.length;
+
+                // 참여자 목록을 바탕으로 지도 마커 업데이트 실행
+                updateMapMarkers(people);
 
                 if (people.length === 0) {
                     listEl.innerHTML = '<div style="text-align: center; color: #adb5bd; font-size: 13px; padding: 16px;">아직 등록된 멤버가 없습니다.</div>';
