@@ -112,68 +112,96 @@
         <div class="container">
             <div>
                 <h2>어떤 장소를 원하시나요?</h2>
+                <div class="section-title" id="roomInfo" style="color: #868e96;"></div>
 
-                <div class="section-title">1. 카테고리 선택</div>
+                <div class="section-title">1. 카테고리 선택 (1인 1표)</div>
                 <div class="category-group">
-                    <label class="checkbox-item highlight">
+                    <label class="checkbox-item">
                         <span class="item-label">
-                            <input type="checkbox" name="category" value="cafe" checked onchange="updateVote(this)"> 카페
+                            <input type="radio" name="category" value="cafe" onchange="onCategoryChange()"> 카페
                         </span>
-                        <span class="vote-count">12표</span>
+                        <span class="vote-count" id="count-cafe">0표</span>
                     </label>
                     <label class="checkbox-item">
                         <span class="item-label">
-                            <input type="checkbox" name="category" value="restaurant" onchange="updateVote(this)"> 식당
+                            <input type="radio" name="category" value="restaurant" onchange="onCategoryChange()"> 식당
                         </span>
-                        <span class="vote-count">5표</span>
+                        <span class="vote-count" id="count-restaurant">0표</span>
                     </label>
                     <label class="checkbox-item">
                         <span class="item-label">
-                            <input type="checkbox" name="category" value="public" onchange="updateVote(this)"> 공공장소
+                            <input type="radio" name="category" value="public" onchange="onCategoryChange()"> 공공장소
                         </span>
-                        <span class="vote-count">2표</span>
+                        <span class="vote-count" id="count-public">0표</span>
                     </label>
                 </div>
 
                 <div class="section-title">2. 추천 장소 투표</div>
                 <div class="place-list">
-                    <label class="checkbox-item highlight">
-                        <span class="item-label">
-                            <input type="checkbox" name="place" value="place1" checked onchange="updateVote(this)"> 스타벅스 익산점
-                        </span>
-                        <span class="vote-count">15표 (다수결)</span>
-                    </label>
-                    <label class="checkbox-item">
-                        <span class="item-label">
-                            <input type="checkbox" name="place" value="place2" onchange="updateVote(this)"> 투썸플레이스
-                        </span>
-                        <span class="vote-count">7표</span>
-                    </label>
-                    <label class="checkbox-item">
-                        <span class="item-label">
-                            <input type="checkbox" name="place" value="place3" onchange="updateVote(this)"> 이디야커피
-                        </span>
-                        <span class="vote-count">4표</span>
-                    </label>
+                    <div class="checkbox-item" style="cursor: default; color: #868e96;">
+                        장소 투표는 결과 페이지에서 중간지점 주변 장소가 검색된 후 진행됩니다.
+                    </div>
                 </div>
             </div>
 
-            <button class="next-btn" onclick="goToResult()">결과 페이지로 이동</button>
+            <button class="next-btn" onclick="goToResult()">결과 보기</button>
         </div>
     </div>
 
+    <script src="api.js"></script>
     <script>
-        function updateVote(checkbox) {
-            const parent = checkbox.closest('.checkbox-item');
-            if (checkbox.checked) {
-                parent.classList.add('highlight');
-            } else {
-                parent.classList.remove('highlight');
+        let currentRoomId = null;
+        let myParticipantId = null;
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            currentRoomId = getCurrentRoomId();
+            myParticipantId = getMyParticipantId();
+            document.getElementById("roomInfo").innerText = currentRoomId ? "방 ID: " + currentRoomId : "방 정보 없음";
+
+            if (!currentRoomId) {
+                alert("방 정보가 없습니다. 처음부터 시작해주세요.");
+                return;
+            }
+
+            await refreshCategoryVotes();
+        });
+
+        async function refreshCategoryVotes() {
+            try {
+                const result = await getCategoryVotes(currentRoomId);
+                const counts = result.counts || {};
+                for (const cat of ["cafe", "restaurant", "public"]) {
+                    document.getElementById("count-" + cat).innerText = (counts[cat] || 0) + "표";
+                    const item = document.querySelector('input[value="' + cat + '"]').closest(".checkbox-item");
+                    if (result.top === cat) item.classList.add("highlight");
+                    else item.classList.remove("highlight");
+                }
+            } catch (err) {
+                console.error("카테고리 투표 조회 실패", err);
+            }
+        }
+
+        async function onCategoryChange() {
+            const selected = document.querySelector('input[name="category"]:checked');
+            if (!selected) return;
+            if (!myParticipantId) { alert("출발지를 먼저 입력해주세요."); return; }
+
+            try {
+                await voteCategory(currentRoomId, {
+                    participant_id: myParticipantId,
+                    category: selected.value,
+                });
+                await refreshCategoryVotes();
+            } catch (err) {
+                alert("투표 실패: " + err.message);
             }
         }
 
         function goToResult() {
-            location.href = 'result.html';
+            if (!currentRoomId) { alert("방 정보가 없습니다."); return; }
+            const selected = document.querySelector('input[name="category"]:checked');
+            const category = selected ? selected.value : "cafe";
+            location.href = "result.html?room=" + currentRoomId + "&category=" + category;
         }
     </script>
 </body>

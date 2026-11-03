@@ -42,6 +42,44 @@ async def search_address(query: str):
         return results
 
 
+async def search_places(lat: float, lng: float, category_code: str, radius: int = 1000):
+    """
+    [기능] 기준 좌표(lat, lng) 주변 반경(radius) 내 특정 카테고리 장소를 검색함.
+
+    :param lat: 위도
+    :param lng: 경도
+    :param category_code: 카카오 카테고리 그룹 코드 (CE7 카페 / FD6 식당 / SW8 공공장소 등)
+    :param radius: 검색 반경 (m 단위, 기본 1000m)
+    :return: 주변 장소 목록 반환함
+    """
+    url = f"{BASE_URL}/search/category.json"
+    params = {
+        "category_group_code": category_code,
+        "x": str(lng),
+        "y": str(lat),
+        "radius": radius,
+        "sort": "distance"
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=HEADERS, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        places = []
+        for doc in data.get("documents", []):
+            places.append({
+                "place_name": doc["place_name"],
+                "address_name": doc["address_name"],
+                "road_address_name": doc["road_address_name"],
+                "place_url": doc["place_url"],
+                "x": float(doc["x"]),
+                "y": float(doc["y"]),
+                "distance": int(doc["distance"])
+            })
+        return places
+
+
 async def search_cafes_near_point(x: float, y: float, radius: int = 1000):
     """
     [기능] 기준 좌표(x, y) 주변 반경(radius) 내 카페 목록을 검색함.

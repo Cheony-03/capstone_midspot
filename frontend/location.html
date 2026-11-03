@@ -89,6 +89,8 @@
             background-color: #3b5bdb;
         }
     </style>
+    <!-- 카카오 우편번호(주소) 검색 API -->
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </head>
 <body>
 
@@ -97,26 +99,147 @@
 
         <div class="control-panel">
             <div>
-                <h2>어디서 만날지 위치를 설정해주세요</h2>
+                <h2>출발지 입력</h2>
+                <div class="section-title" id="roomInfo" style="margin-bottom: 12px; color: #868e96;">방 불러오는 중...</div>
+
                 <div class="input-group">
-                    <div class="section-title">만날 장소 / 지역 검색</div>
-                    <input type="text" id="locationInput" placeholder="예: 서울시청, 강남역 등">
+                    <div class="section-title">이름</div>
+                    <input type="text" id="userName" placeholder="이름을 입력하세요">
+                </div>
+
+                <div class="input-group">
+                    <div class="section-title">출발 주소</div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="userAddress" placeholder="주소 검색 버튼을 눌러주세요" readonly style="flex: 1;">
+                        <button type="button" onclick="execDaumPostcode()" style="padding: 14px 16px; border: 1px solid #ced4da; border-radius: 8px; background: #fff; cursor: pointer; font-size: 14px; white-space: nowrap;">주소 검색</button>
+                    </div>
+                </div>
+
+                <button class="next-btn" id="saveBtn" onclick="saveParticipant()" style="background-color: #51cf66; margin-bottom: 16px;">💾 내 출발지 저장</button>
+
+                <div class="input-group">
+                    <div class="section-title">참여 멤버 (<span id="participantCount">0</span>명)</div>
+                    <div id="participantList" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="text-align: center; color: #adb5bd; font-size: 13px; padding: 16px;">아직 등록된 멤버가 없습니다.</div>
+                    </div>
                 </div>
             </div>
 
-            <button class="next-btn" onclick="goToCategory()">저장 후 계속</button>
+            <button class="next-btn" onclick="goToCategory()">투표하러 가기 (최소 2명 필요)</button>
         </div>
     </div>
 
+    <script src="api.js"></script>
     <script>
-        function goToCategory() {
-            const locationVal = document.getElementById('locationInput').value;
-            if (!locationVal.trim()) {
-                alert('위치나 지역을 입력해주세요!');
+        let currentRoomId = null;
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            currentRoomId = getCurrentRoomId();
+            const infoEl = document.getElementById("roomInfo");
+
+            if (!currentRoomId) {
+                infoEl.innerText = "방 정보가 없습니다. 처음부터 시작해주세요.";
+                infoEl.style.color = "#e03131";
                 return;
             }
-            localStorage.setItem('selectedLocation', locationVal);
-            location.href = 'category.html';
+
+            try {
+                await getRoom(currentRoomId);
+                infoEl.innerText = "방 ID: " + currentRoomId;
+            } catch (err) {
+                infoEl.innerText = "방 조회 실패: " + err.message;
+                infoEl.style.color = "#e03131";
+            }
+
+            await refreshParticipants();
+        });
+
+        function execDaumPostcode() {
+            new daum.Postcode({
+                oncomplete: function (data) {
+                    document.getElementById("userAddress").value = data.address;
+                }
+            }).open();
+        }
+
+        async function geocodeAddress(address) {
+            const url = API_BASE + "/api/cafes/search-address?query=" + encodeURIComponent(address);
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "주소 변환 실패");
+            if (!data || data.length === 0) throw new Error("주소를 좌표로 변환하지 못했습니다.");
+            return data[0];
+        }
+
+        async function saveParticipant() {
+            const userName = document.getElementById("userName").value.trim();
+            const userAddress = document.getElementById("userAddress").value.trim();
+
+            if (!currentRoomId) { alert("방 정보가 없습니다."); return; }
+            if (!userName) { alert("이름을 입력해주세요."); return; }
+            if (!userAddress) { alert("출발 주소를 검색해주세요."); return; }
+
+            const btn = document.getElementById("saveBtn");
+            btn.disabled = true;
+            btn.innerText = "저장 중...";
+
+            try {
+                const geo = await geocodeAddress(userAddress);
+
+                const participant = await addParticipant(currentRoomId, {
+                    nickname: userName,
+                    address_name: userAddress,
+                    latitude: geo.y,
+                    longitude: geo.x,
+                });
+
+                localStorage.setItem("myParticipantId", participant.participant_id);
+                alert(userName + "님의 출발지가 저장되었습니다!");
+
+                document.getElementById("userName").value = "";
+                document.getElementById("userAddress").value = "";
+                await refreshParticipants();
+            } catch (err) {
+                alert("저장 실패: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "💾 내 출발지 저장";
+            }
+        }
+
+        async function refreshParticipants() {
+            if (!currentRoomId) return;
+            const listEl = document.getElementById("participantList");
+            const countEl = document.getElementById("participantCount");
+
+            try {
+                const people = await getParticipants(currentRoomId);
+                countEl.innerText = people.length;
+
+                if (people.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; color: #adb5bd; font-size: 13px; padding: 16px;">아직 등록된 멤버가 없습니다.</div>';
+                    return;
+                }
+
+                listEl.innerHTML = people.map(p =>
+                    '<div style="padding: 12px 14px; border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa; font-size: 14px;">' +
+                    '<div style="font-weight: 600;">👤 ' + p.nickname + '</div>' +
+                    '<div style="color: #666; font-size: 13px; margin-top: 4px;">📍 ' + p.address_name + '</div>' +
+                    '</div>'
+                ).join("");
+            } catch (err) {
+                listEl.innerHTML = '<div style="color: #e03131; font-size: 13px;">참가자 목록 조회 실패: ' + err.message + '</div>';
+            }
+        }
+
+        function goToCategory() {
+            if (!currentRoomId) { alert("방 정보가 없습니다."); return; }
+            const count = Number(document.getElementById("participantCount").innerText) || 0;
+            if (count < 2) {
+                alert("중간지점 계산을 위해 최소 2명의 출발지가 필요합니다.");
+                return;
+            }
+            location.href = "category.html?room=" + currentRoomId;
         }
     </script>
 </body>

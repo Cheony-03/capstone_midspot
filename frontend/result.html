@@ -118,26 +118,17 @@
 <body>
 
     <div class="wrapper">
+        <h2 style="margin-bottom: 10px;">최종 결과</h2>
+        <div id="midpointInfo" style="font-size: 14px; color: #495057; margin-bottom: 12px; background: #e7f5ff; padding: 10px 14px; border-radius: 8px;">결과를 불러오는 중...</div>
+
         <div class="content-layout">
             <div id="map">지도 영역 (카카오맵/네이버 지도 연동)</div>
 
             <div class="rank-panel">
                 <div>
-                    <h2>최종 투표 결과</h2>
-                    <div class="section-title">추천 장소 순위 목록</div>
-                    <div class="rank-list">
-                        <div class="rank-item top-choice">
-                            <span>1. 스타벅스 익산점 (다수결)</span>
-                            <span>15표</span>
-                        </div>
-                        <div class="rank-item">
-                            <span>2. 투썸플레이스</span>
-                            <span>7표</span>
-                        </div>
-                        <div class="rank-item">
-                            <span>3. 이디야커피</span>
-                            <span>4표</span>
-                        </div>
+                    <div class="section-title">추천 장소 순위 목록 (클릭하여 투표)</div>
+                    <div class="rank-list" id="rankList">
+                        <div style="text-align: center; color: #868e96; padding: 30px;">중간지점 주변 장소를 검색 중입니다...</div>
                     </div>
                 </div>
 
@@ -146,28 +137,123 @@
         </div>
     </div>
 
-    <div id="toast" class="toast">카카오맵 및 네이버 지도 링크가 복사되었습니다!</div>
+    <div id="toast" class="toast">링크가 복사되었습니다!</div>
 
+    <script src="api.js"></script>
     <script>
+        let currentRoomId = null;
+        let myParticipantId = null;
+        let places = [];
+        let topPlaceId = null;
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            currentRoomId = getCurrentRoomId();
+            myParticipantId = getMyParticipantId();
+
+            if (!currentRoomId) {
+                document.getElementById("rankList").innerHTML = '<div style="text-align: center; color: #e03131; padding: 30px;">방 정보가 없습니다.</div>';
+                return;
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const category = params.get("category") || "cafe";
+
+            await loadResult(category);
+        });
+
+        async function loadResult(category) {
+            const rankList = document.getElementById("rankList");
+            try {
+                const result = await getResult(currentRoomId, category, 1000);
+                const mid = result.midpoint;
+                places = result.places || [];
+
+                document.getElementById("midpointInfo").innerText =
+                    "📍 중간지점: 위도 " + mid.latitude.toFixed(5) + ", 경도 " + mid.longitude.toFixed(5) +
+                    "  (참여자 " + result.participant_count + "명, 카테고리: " + result.category + ")";
+
+                await refreshPlaceVotes();
+            } catch (err) {
+                rankList.innerHTML = '<div style="text-align: center; color: #e03131; padding: 30px;">결과 조회 실패: ' + err.message + '<br><br>※ 카카오 API 키가 없으면 장소 검색이 실패합니다.</div>';
+            }
+        }
+
+        async function refreshPlaceVotes() {
+            const rankList = document.getElementById("rankList");
+
+            if (places.length === 0) {
+                rankList.innerHTML = '<div style="text-align: center; color: #868e96; padding: 30px;">주변에 검색된 장소가 없습니다.</div>';
+                return;
+            }
+
+            let votes = {};
+            let top = null;
+            try {
+                const vresult = await getPlaceVotes(currentRoomId);
+                votes = vresult.counts || {};
+                top = vresult.top;
+                topPlaceId = top;
+            } catch (err) {
+                console.error("장소 투표 조회 실패", err);
+            }
+
+            const sorted = [...places].sort((a, b) => {
+                const va = votes[a.place_name] || 0;
+                const vb = votes[b.place_name] || 0;
+                return vb - va;
+            });
+
+            rankList.innerHTML = sorted.map((p, i) => {
+                const v = votes[p.place_name] || 0;
+                const isTop = (p.place_name === top);
+                const rankCls = i === 0 ? "top-choice" : "";
+                return '<div class="rank-item ' + rankCls + '">' +
+                    '<div style="display: flex; flex-direction: column; gap: 2px;">' +
+                    '<span>' + (i + 1) + '. ' + p.place_name + (isTop ? ' (다수결)' : '') + '</span>' +
+                    '<span style="font-size: 12px; color: #868e96;">' + (p.road_address_name || p.address_name) + '</span>' +
+                    '</div>' +
+                    '<div style="display: flex; align-items: center; gap: 10px;">' +
+                    '<span style="color: #3b5bdb; font-weight: 600;">' + v + '표</span>' +
+                    '<button onclick="voteForPlace(\'' + p.place_name.replace(/'/g, "\\'") + '\')" style="padding: 6px 12px; border: 1px solid #51cf66; border-radius: 6px; background: #fff; color: #37b24d; font-size: 13px; cursor: pointer;">투표</button>' +
+                    '</div>' +
+                    '</div>';
+            }).join("");
+        }
+
+        async function voteForPlace(placeName) {
+            if (!myParticipantId) { alert("출발지를 먼저 입력해주세요."); return; }
+            try {
+                await votePlace(currentRoomId, {
+                    participant_id: myParticipantId,
+                    place_id: placeName,
+                    place_name: placeName,
+                });
+                await refreshPlaceVotes();
+                showToast();
+            } catch (err) {
+                alert("투표 실패: " + err.message);
+            }
+        }
+
         function shareLocationLinks() {
-            const kakaoMapUrl = "https://map.kakao.com/?q=스타벅스익산점";
-            const naverMapUrl = "https://map.naver.com/v5/search/스타벅스익산점";
-            
-            const shareText = `[우리 어디서 만날까? 추천 장소]\n- 카카오맵: ${kakaoMapUrl}\n- 네이버지도: ${naverMapUrl}`;
+            const target = places.find(p => p.place_name === topPlaceId) || places[0];
+            if (!target) { alert("공유할 장소가 없습니다."); return; }
+            const name = target.place_name;
+            const kakaoMapUrl = "https://map.kakao.com/?q=" + encodeURIComponent(name);
+            const naverMapUrl = "https://map.naver.com/v5/search/" + encodeURIComponent(name);
+            const shareText = "[우리 어디서 만날까? 추천 장소]\n- " + name + "\n- 카카오맵: " + kakaoMapUrl + "\n- 네이버지도: " + naverMapUrl;
 
             navigator.clipboard.writeText(shareText).then(() => {
                 showToast();
-            }).catch(err => {
-                alert('링크 복사에 실패했습니다.');
+            }).catch(() => {
+                alert("링크 복사에 실패했습니다.");
             });
         }
 
         function showToast() {
-            const toast = document.getElementById('toast');
-            toast.style.display = 'block';
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 2500);
+            const toast = document.getElementById("toast");
+            toast.style.display = "block";
+            setTimeout(() => { toast.style.display = "none"; }, 2500);
         }
     </script>
 </body>

@@ -33,25 +33,34 @@
     </div>
 
     <!-- 방 생성 및 링크 복사 스크립트 -->
+    <script src="api.js"></script>
     <script>
-        function createRoomAndCopy() {
-            // 1. 고유한 방 번호(ID) 생성 (예: 랜덤 문자열 + 현재 시간 조합)
-            const roomId = Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
-            
-            // 2. 현재 사이트 주소를 기반으로 기존 3페이지(location.html)로 연결되는 링크 생성
-            const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-            const roomUrl = `${baseUrl}location.html?room=${roomId}`;
-            
-            // 3. 클립보드에 링크 복사
-            navigator.clipboard.writeText(roomUrl).then(() => {
-                alert("방 링크가 복사되었습니다! 친구들에게 공유해주세요.\n내 출발지 입력 페이지로 이동합니다.");
-                
-                // 4. 복사가 완료되면 방 번호가 포함된 주소(기존 3페이지)로 자동 이동
+        async function createRoomAndCopy() {
+            const btn = event.currentTarget;
+            btn.disabled = true;
+            btn.innerText = "방 생성 중...";
+
+            try {
+                const room = await createRoom();
+                const roomId = room.room_id;
+                localStorage.setItem("currentRoomId", roomId);
+
+                const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+                const roomUrl = `${baseUrl}location.html?room=${roomId}`;
+
+                try {
+                    await navigator.clipboard.writeText(roomUrl);
+                    alert("방 링크가 복사되었습니다! 친구들에게 공유해주세요.\n출발지 입력 페이지로 이동합니다.");
+                } catch (err) {
+                    alert("링크 복사에 실패했지만 방은 생성되었습니다.\n공유 링크: " + roomUrl);
+                }
+
                 window.location.href = roomUrl;
-            }).catch(err => {
-                console.error("링크 복사 실패", err);
-                alert("링크 복사에 실패했습니다. 다시 시도해주세요.");
-            });
+            } catch (err) {
+                alert("방 생성 실패: " + err.message);
+                btn.disabled = false;
+                btn.innerText = "📋 방 만들기 및 링크 복사하기";
+            }
         }
     </script>
 </body>

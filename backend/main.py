@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import cafes
+from routers import cafes, rooms, participants, votes, result
 
 # FastAPI 앱 생성함
 app = FastAPI(
@@ -18,8 +18,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 카페 라우터 등록함
+# 라우터 등록함
 app.include_router(cafes.router)
+app.include_router(rooms.router)
+app.include_router(participants.router)
+app.include_router(votes.router)
+app.include_router(result.router)
 
 
 @app.get("/")
