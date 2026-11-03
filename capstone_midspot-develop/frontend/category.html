@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우리 어디서 만날까? - 카테고리 및 투표</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100vh;
+            padding: 30px;
+        }
+        .container {
+            flex: 1;
+            width: 100%;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow-y: auto;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #111;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 12px;
+            margin-top: 20px;
+        }
+        .category-group, .place-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border: 1px solid #ced4da;
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+        .checkbox-item input[type="checkbox"], .checkbox-item input[type="radio"] {
+            margin-right: 12px;
+            width: 20px;
+            height: 20px;
+        }
+        .item-label {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        .vote-count {
+            font-size: 15px;
+            color: #868e96;
+            font-weight: 500;
+        }
+        .highlight {
+            border-color: #4c6ef5;
+            background-color: #edf2ff;
+            font-weight: 600;
+        }
+        .highlight .vote-count {
+            color: #3b5bdb;
+        }
+        .next-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: #4c6ef5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background-color 0.2s;
+        }
+        .next-btn:hover {
+            background-color: #3b5bdb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="container">
+            <div>
+                <h2>어떤 장소를 원하시나요?</h2>
+                <div class="section-title" id="roomInfo" style="color: #868e96;"></div>
+
+                <div class="section-title">1. 카테고리 선택 (1인 1표)</div>
+                <div class="category-group">
+                    <label class="checkbox-item">
+                        <span class="item-label">
+                            <input type="radio" name="category" value="cafe" onchange="onCategoryChange()"> 카페
+                        </span>
+                        <span class="vote-count" id="count-cafe">0표</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <span class="item-label">
+                            <input type="radio" name="category" value="restaurant" onchange="onCategoryChange()"> 식당
+                        </span>
+                        <span class="vote-count" id="count-restaurant">0표</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <span class="item-label">
+                            <input type="radio" name="category" value="public" onchange="onCategoryChange()"> 공공장소
+                        </span>
+                        <span class="vote-count" id="count-public">0표</span>
+                    </label>
+                </div>
+
+                <div class="section-title">2. 추천 장소 투표</div>
+                <div class="place-list">
+                    <div class="checkbox-item" style="cursor: default; color: #868e96;">
+                        장소 투표는 결과 페이지에서 중간지점 주변 장소가 검색된 후 진행됩니다.
+                    </div>
+                </div>
+            </div>
+
+            <button class="next-btn" onclick="goToResult()">결과 보기</button>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        let currentRoomId = null;
+        let myParticipantId = null;
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            currentRoomId = getCurrentRoomId();
+            myParticipantId = getMyParticipantId();
+            document.getElementById("roomInfo").innerText = currentRoomId ? "방 ID: " + currentRoomId : "방 정보 없음";
+
+            if (!currentRoomId) {
+                alert("방 정보가 없습니다. 처음부터 시작해주세요.");
+                return;
+            }
+
+            await refreshCategoryVotes();
+        });
+
+        async function refreshCategoryVotes() {
+            try {
+                const result = await getCategoryVotes(currentRoomId);
+                const counts = result.counts || {};
+                for (const cat of ["cafe", "restaurant", "public"]) {
+                    document.getElementById("count-" + cat).innerText = (counts[cat] || 0) + "표";
+                    const radioInput = document.querySelector('input[value="' + cat + '"]');
+                    if (radioInput) {
+                        const item = radioInput.closest(".checkbox-item");
+                        if (result.top === cat) item.classList.add("highlight");
+                        else item.classList.remove("highlight");
+                    }
+                }
+            } catch (err) {
+                console.error("카테고리 투표 조회 실패", err);
+            }
+        }
+
+        async function onCategoryChange() {
+            const selected = document.querySelector('input[name="category"]:checked');
+            if (!selected) return;
+            if (!myParticipantId) { alert("출발지를 먼저 입력해주세요."); return; }
+
+            try {
+                await voteCategory(currentRoomId, {
+                    participant_id: myParticipantId,
+                    category: selected.value,
+                });
+                await refreshCategoryVotes();
+            } catch (err) {
+                alert("투표 실패: " + err.message);
+            }
+        }
+
+        function goToResult() {
+            if (!currentRoomId) { alert("방 정보가 없습니다."); return; }
+            const selected = document.querySelector('input[name="category"]:checked');
+            const category = selected ? selected.value : "cafe";
+            // 🛠️ 수정 포인트: category.html이 아니라 result.html로 이동하도록 수정함
+            location.href = "result.html?room=" + currentRoomId + "&category=" + category;
+        }
+    </script>
+</body>
+</html>

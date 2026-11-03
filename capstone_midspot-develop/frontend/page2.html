@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>방 만들기 - 약속 중간지점 추천</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 상단 헤더 섹션 -->
+        <header class="header-section" style="margin-bottom: 2rem; text-align: center;">
+            <h2 class="title" style="font-size: 1.6rem; margin-bottom: 0.5rem;">중간지점 모임 방 만들기</h2>
+            <p class="description">친구들과 공유할 방을 만들고 링크를 전달해보세요!</p>
+        </header>
+
+        <!-- 이용 방법 안내 -->
+        <div class="form-section" style="margin-bottom: 1.5rem; background: #f9f9f9; padding: 1rem; border-radius: 8px;">
+            <p style="font-weight: bold; margin-bottom: 0.5rem; color: #333;">📌 이용 방법</p>
+            <p style="font-size: 0.9rem; color: #666; line-height: 1.4; margin: 0;">
+                1. 아래 <strong>[방 만들기 및 링크 복사]</strong> 버튼을 누릅니다.<br>
+                2. 생성된 링크를 친구들에게 공유합니다.<br>
+                3. 방장과 친구들이 각자 출발지를 입력하면 참여 현황이 실시간으로 반영됩니다!
+            </p>
+        </div>
+
+        <!-- 방 생성 및 링크 복사 버튼 -->
+        <div class="form-section">
+            <button type="button" class="create-btn" onclick="createRoomAndCopy()" style="background-color: #fee500; color: #333; font-weight: bold; margin-bottom: 12px; cursor: pointer;">
+                📋 방 만들기 및 링크 복사하기
+            </button>
+        </div>
+    </div>
+
+    <!-- 방 생성 및 링크 복사 스크립트 -->
+    <script src="api.js"></script>
+    <script>
+        async function createRoomAndCopy() {
+            const btn = event.currentTarget;
+            btn.disabled = true;
+            btn.innerText = "방 생성 중...";
+
+            try {
+                const room = await createRoom();
+                const roomId = room.room_id;
+                localStorage.setItem("currentRoomId", roomId);
+
+                const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+                const roomUrl = `${baseUrl}location.html?room=${roomId}`;
+
+                try {
+                    await navigator.clipboard.writeText(roomUrl);
+                    alert("방 링크가 복사되었습니다! 친구들에게 공유해주세요.\n출발지 입력 페이지로 이동합니다.");
+                } catch (err) {
+                    alert("링크 복사에 실패했지만 방은 생성되었습니다.\n공유 링크: " + roomUrl);
+                }
+
+                window.location.href = roomUrl;
+            } catch (err) {
+                alert("방 생성 실패: " + err.message);
+                btn.disabled = false;
+                btn.innerText = "📋 방 만들기 및 링크 복사하기";
+            }
+        }
+    </script>
+</body>
+</html>
