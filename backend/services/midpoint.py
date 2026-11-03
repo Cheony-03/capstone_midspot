@@ -1,50 +1,53 @@
-from typing import Iterable
-
-
-def calculate_midpoint(coords: Iterable[tuple[float, float]]) -> dict:
+def calculate_midpoint(coords: list[tuple[float, float]]) -> dict[str, float]:
     """
-    참여자 좌표 [(위도, 경도), ...]의 산술평균(centroid)을 반환한다.
-    """
-    # 입력을 리스트로 변환 (len() 사용, 여러 번 순회하기 위해)
-    coords = list(coords)
+    [기능] 참여자 좌표 [(위도, 경도), ...]의 산술평균(centroid) 중간지점을 계산함.
 
-    # 1명 이하면 '중간'이 없으므로 에러 발생
+    :param coords: 참여자들의 (위도, 경도) 튜플 리스트
+    :return: {"latitude": ..., "longitude": ...} 형태의 중간지점 dict
+    :raises ValueError: 참여자가 2명 미만이거나 좌표가 위경도 범위를 벗어난 경우
+    """
     if len(coords) < 2:
-        raise ValueError("중간지점 계산에는 최소 2명의 좌표가 필요합니다.")
+        raise ValueError("중간지점 계산을 위해서는 최소 2명 이상의 좌표가 필요합니다.")
 
-    # 참여자 한 명씩 꺼내서 좌표 범위 검사
+    lat_sum = 0.0
+    lng_sum = 0.0
     for lat, lng in coords:
-        # 위도는 -90 ~ 90 사이여야 함
-        if not (-90 <= lat <= 90):
-            raise ValueError(f"위도 범위 오류: {lat}")
-        # 경도는 -180 ~ 180 사이여야 함
-        if not (-180 <= lng <= 180):
-            raise ValueError(f"경도 범위 오류: {lng}")
+        # 위경도 범위 검사
+        if not (-90.0 <= lat <= 90.0):
+            raise ValueError(f"잘못된 위도입니다: {lat}")
+        if not (-180.0 <= lng <= 180.0):
+            raise ValueError(f"잘못된 경도입니다: {lng}")
+        lat_sum += lat
+        lng_sum += lng
 
-    # 참여자 수
-    n = len(coords)
-
-    # 위도끼리 모두 더한 뒤 인원수로 나눔 (위도 평균)
-    mid_lat = sum(lat for lat, _ in coords) / n
-    # 경도끼리 모두 더한 뒤 인원수로 나눔 (경도 평균)
-    mid_lng = sum(lng for _, lng in coords) / n
-
-    # 중간 좌표를 딕셔너리로 반환 (나중에 카카오 API에 전달)
-    return {"latitude": mid_lat, "longitude": mid_lng}
+    return {
+        "latitude": lat_sum / len(coords),
+        "longitude": lng_sum / len(coords),
+    }
 
 
-# 이 파일을 직접 실행할 때만 아래 테스트 코드가 동작
+# ---- 테스트 코드 (all_code 원본 복구) ----
 if __name__ == "__main__":
-    # 테스트 1: 공주 / 대전 / 천안 3명 좌표 (위도, 경도)
-    three = [(36.4465, 127.1190), (36.3504, 127.3845), (36.8151, 127.1139)]
-    print("3명:", calculate_midpoint(three))
+    # 1) 정상: 3명의 좌표
+    coords3 = [(37.4979, 127.0276), (37.5512, 126.9882), (37.4786, 127.0315)]
+    print("=== 3명 중간지점 ===")
+    print(calculate_midpoint(coords3))
 
-    # 테스트 2: 2명 좌표
-    two = [(36.4465, 127.1190), (36.3504, 127.3845)]
-    print("2명:", calculate_midpoint(two))
+    # 2) 정상: 2명의 좌표 (두 지점의 중간)
+    coords2 = [(37.4979, 127.0276), (37.5512, 126.9882)]
+    print("\n=== 2명 중간지점 ===")
+    print(calculate_midpoint(coords2))
 
-    # 테스트 3: 1명만 넣어서 에러가 나는지 확인
+    # 3) 에러: 1명만 전달
+    print("\n=== 1명 (에러 기대) ===")
     try:
-        calculate_midpoint([(36.4, 127.1)])
+        calculate_midpoint([(37.4979, 127.0276)])
     except ValueError as e:
-        print("에러 테스트:", e)
+        print("ValueError:", e)
+
+    # 4) 에러: 좌표 범위 초과
+    print("\n=== 범위 초과 (에러 기대) ===")
+    try:
+        calculate_midpoint([(37.4979, 127.0276), (95.0, 127.0)])
+    except ValueError as e:
+        print("ValueError:", e)
