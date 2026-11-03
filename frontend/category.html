@@ -65,7 +65,7 @@
             transition: all 0.2s;
             font-size: 16px;
         }
-        .checkbox-item input[type="checkbox"] {
+        .checkbox-item input[type="checkbox"], .checkbox-item input[type="radio"] {
             margin-right: 12px;
             width: 20px;
             height: 20px;
@@ -172,9 +172,12 @@
                 const counts = result.counts || {};
                 for (const cat of ["cafe", "restaurant", "public"]) {
                     document.getElementById("count-" + cat).innerText = (counts[cat] || 0) + "표";
-                    const item = document.querySelector('input[value="' + cat + '"]').closest(".checkbox-item");
-                    if (result.top === cat) item.classList.add("highlight");
-                    else item.classList.remove("highlight");
+                    const radioInput = document.querySelector('input[value="' + cat + '"]');
+                    if (radioInput) {
+                        const item = radioInput.closest(".checkbox-item");
+                        if (result.top === cat) item.classList.add("highlight");
+                        else item.classList.remove("highlight");
+                    }
                 }
             } catch (err) {
                 console.error("카테고리 투표 조회 실패", err);
@@ -201,6 +204,7 @@
             if (!currentRoomId) { alert("방 정보가 없습니다."); return; }
             const selected = document.querySelector('input[name="category"]:checked');
             const category = selected ? selected.value : "cafe";
+            // 🛠️ 수정 포인트: category.html이 아니라 result.html로 이동하도록 수정함
             location.href = "result.html?room=" + currentRoomId + "&category=" + category;
         }
     </script>
