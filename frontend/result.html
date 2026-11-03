@@ -40,11 +40,6 @@
             height: 100%;
             background-color: #e9ecef;
             border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #868e96;
-            font-size: 16px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
         .rank-panel {
@@ -114,6 +109,8 @@
             z-index: 1000;
         }
     </style>
+    <!-- 카카오 지도 SDK 로드 (autoload=false 적용) -->
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=01521887512e7784a60c5b6750b4cc05&autoload=false"></script>
 </head>
 <body>
 
@@ -122,7 +119,7 @@
         <div id="midpointInfo" style="font-size: 14px; color: #495057; margin-bottom: 12px; background: #e7f5ff; padding: 10px 14px; border-radius: 8px;">결과를 불러오는 중...</div>
 
         <div class="content-layout">
-            <div id="map">지도 영역 (카카오맵/네이버 지도 연동)</div>
+            <div id="map"></div>
 
             <div class="rank-panel">
                 <div>
@@ -145,8 +142,77 @@
         let myParticipantId = null;
         let places = [];
         let topPlaceId = null;
+        let currentMidpoint = null;
+        let map = null;
+        let markers = [];
+
+        // 지도 초기화 함수
+        function initMap(lat = 37.566826, lng = 126.978656) {
+            const container = document.getElementById('map');
+            const options = {
+                center: new kakao.maps.LatLng(lat, lng),
+                level: 4
+            };
+            map = new kakao.maps.Map(container, options);
+        }
+
+        // 지도에 중간지점 및 추천 장소 마커 표시
+        function updateResultMap(midpoint, placeList, topId) {
+            if (!map) return;
+
+            // 기존 마커 초기화
+            markers.forEach(m => m.setMap(null));
+            markers = [];
+
+            const bounds = new kakao.maps.LatLngBounds();
+
+            // 1. 중간지점 마커 표시
+            if (midpoint && midpoint.latitude && midpoint.longitude) {
+                const midCoord = new kakao.maps.LatLng(midpoint.latitude, midpoint.longitude);
+                const midMarker = new kakao.maps.Marker({
+                    map: map,
+                    position: midCoord,
+                });
+                
+                const midWindow = new kakao.maps.InfoWindow({
+                    content: '<div style="padding:5px;font-size:12px;font-weight:bold;color:#4c6ef5;">📍 중간지점</div>'
+                });
+                midWindow.open(map, midMarker);
+                markers.push(midMarker);
+                bounds.extend(midCoord);
+            }
+
+            // 2. 주변 추천 장소 마커 표시
+            placeList.forEach((p, idx) => {
+                const coord = new kakao.maps.LatLng(p.y, p.x);
+                const isTop = (p.place_name === topId);
+                
+                const marker = new kakao.maps.Marker({
+                    map: map,
+                    position: coord
+                });
+
+                const infowindow = new kakao.maps.InfoWindow({
+                    content: `<div style="padding:4px 8px;font-size:11px;">${idx + 1}. ${p.place_name}${isTop ? ' ⭐' : ''}</div>`
+                });
+                infowindow.open(map, marker);
+
+                markers.push(marker);
+                bounds.extend(coord);
+            });
+
+            // 모든 마커가 보이도록 영역 재설정
+            if (markers.length > 0) {
+                map.setBounds(bounds);
+            }
+        }
 
         window.addEventListener("DOMContentLoaded", async () => {
+            // 카카오 지도 SDK 비동기 로드 후 안전하게 실행
+            kakao.maps.load(() => {
+                initMap();
+            });
+
             currentRoomId = getCurrentRoomId();
             myParticipantId = getMyParticipantId();
 
@@ -165,11 +231,11 @@
             const rankList = document.getElementById("rankList");
             try {
                 const result = await getResult(currentRoomId, category, 1000);
-                const mid = result.midpoint;
+                currentMidpoint = result.midpoint;
                 places = result.places || [];
 
                 document.getElementById("midpointInfo").innerText =
-                    "📍 중간지점: 위도 " + mid.latitude.toFixed(5) + ", 경도 " + mid.longitude.toFixed(5) +
+                    "📍 중간지점: 위도 " + currentMidpoint.latitude.toFixed(5) + ", 경도 " + currentMidpoint.longitude.toFixed(5) +
                     "  (참여자 " + result.participant_count + "명, 카테고리: " + result.category + ")";
 
                 await refreshPlaceVotes();
@@ -203,6 +269,9 @@
                 return vb - va;
             });
 
+            // 지도 마커 및 영역 업데이트 실행
+            updateResultMap(currentMidpoint, sorted, topPlaceId);
+
             rankList.innerHTML = sorted.map((p, i) => {
                 const v = votes[p.place_name] || 0;
                 const isTop = (p.place_name === top);
@@ -220,20 +289,27 @@
             }).join("");
         }
 
-        async function voteForPlace(placeName) {
-            if (!myParticipantId) { alert("출발지를 먼저 입력해주세요."); return; }
-            try {
-                await votePlace(currentRoomId, {
-                    participant_id: myParticipantId,
-                    place_id: placeName,
-                    place_name: placeName,
-                });
-                await refreshPlaceVotes();
-                showToast();
-            } catch (err) {
-                alert("투표 실패: " + err.message);
-            }
-        }
+       async function voteForPlace(placeName) {
+    if (!myParticipantId) { alert("출발지를 먼저 입력해주세요."); return; }
+    try {
+        // 1. 백엔드로 투표 요청 전송
+        await votePlace(currentRoomId, {
+            participant_id: myParticipantId,
+            place_id: placeName,
+            place_name: placeName,
+        });
+
+        // 2. 투표 직후 백엔드에서 최신 투표 결과(counts, top)와 장소 목록을 한 번에 다시 불러와 갱신
+        const result = await getResult(currentRoomId, new URLSearchParams(window.location.search).get("category") || "cafe", 1000);
+        places = result.places || [];
+
+        // 3. 화면 리렌더링 실행
+        await refreshPlaceVotes();
+        showToast();
+    } catch (err) {
+        alert("투표 실패: " + err.message);
+    }
+}
 
         function shareLocationLinks() {
             const target = places.find(p => p.place_name === topPlaceId) || places[0];
