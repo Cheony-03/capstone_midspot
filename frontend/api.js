@@ -9,7 +9,8 @@ function getRoomIdFromUrl() {
 }
 
 function getCurrentRoomId() {
-    return localStorage.getItem("currentRoomId") || getRoomIdFromUrl();
+    // 공유 링크의 방 ID가 브라우저에 남은 이전 방 ID보다 우선합니다.
+    return getRoomIdFromUrl() || localStorage.getItem("currentRoomId");
 }
 
 function getMyParticipantId() {
