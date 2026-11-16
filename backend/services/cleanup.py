@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional  # 👈 Optional 추가
-from db import rooms_db, participants_db
+from db import rooms_db, participants_db, category_votes_db, place_votes_db
 
 ROOM_TTL_HOURS = 24
 
@@ -16,5 +16,7 @@ def cleanup_expired_rooms() -> list[str]:
     for rid in expired:
         rooms_db.pop(rid, None)
         participants_db.pop(rid, None)
+        category_votes_db.pop(rid, None)
+        place_votes_db.pop(rid, None)
 
     return expired
