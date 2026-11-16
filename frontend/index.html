@@ -3,33 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>약속 중간지점 추천 서비스</title>
-    <!-- CSS 파일 연결 -->
-    <link rel="stylesheet" href="style.css">
+    <title>우리 어디서 만날까? - 중간지점 추천 서비스</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 첫 화면 배경 디자인 개선 (빈 공간을 채우는 그라데이션 & 빛 효과 블러) */
+        .landing-container {
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.9)), 
+                        url('https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 배경에 은은한 빛 효과(Blob)를 주어 휑한 공간 채우기 */
+        .landing-container::before {
+            content: '';
+            position: absolute;
+            width: 450px;
+            height: 450px;
+            background: rgba(76, 110, 245, 0.25);
+            filter: blur(90px);
+            border-radius: 50%;
+            top: -100px;
+            left: -100px;
+            z-index: 1;
+        }
+        .landing-container::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: rgba(12, 166, 120, 0.15);
+            filter: blur(90px);
+            border-radius: 50%;
+            bottom: -100px;
+            right: -100px;
+            z-index: 1;
+        }
+
+        /* 메인 카드 박스 */
+        .hero-card {
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            padding: 40px 32px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 440px;
+            width: 100%;
+        }
+
+        /* 팀 마크 / 로고 스타일 */
+        .team-logo {
+            width: 76px;
+            height: 76px;
+            margin: 0 auto 18px auto;
+            background: linear-gradient(135deg, #4c6ef5, #3b5bdb);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            box-shadow: 0 10px 20px rgba(76, 110, 245, 0.4);
+        }
+
+        .hero-card h1 {
+            font-size: 24px;
+            color: #111;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .hero-card p {
+            font-size: 15px;
+            color: #666;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+
+        .start-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: #4c6ef5;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(76, 110, 245, 0.3);
+        }
+        .start-btn:hover {
+            background-color: #3b5bdb;
+            transform: translateY(-2px);
+        }
+
+        /* 하단 빈 공간 채우는 서비스 특징 요약 태그라인 */
+        .hero-features {
+            margin-top: 28px;
+            display: flex;
+            justify-content: space-around;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+        .hero-features span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- 서비스 제목 및 설명 -->
-        <header class="header-section">
-            <h1 class="title">우리 어디서 만날까?</h1>
-            <p class="description">
-                친구들과의 약속, 더 이상 억울한 사람 없이!<br>
-                3명의 위치를 입력하면 가장 공평한 중간지점과<br>근처 예쁜 카페를 추천해 드립니다.
-            </p>
-        </header>
 
-        <!-- 모임 만들기 버튼 -->
-        <div class="button-section">
-            <button id="createRoomBtn" class="create-btn">모임 만들기</button>
+    <div class="landing-container">
+        <div class="hero-card">
+            <!-- 팀 마크 (이모지나 로고 이미지로 대체 가능) -->
+            <div class="team-logo">📍</div>
+            
+            <h1>어디서 만날까요?</h1>
+            <p>우리 모두에게 가장 공평하고 최적화된<br>만남의 중간지점을 찾아드립니다.</p>
+
+            <button class="start-btn" onclick="startApp()">서비스 시작하기</button>
+
+            <!-- 빈 공간을 채워주는 하단 부가 요소 -->
+            <div class="hero-features">
+                <span>⚡ 빠른 위치 계산</span>
+                <span>🗳️ 간편한 투표</span>
+                <span>🗺️ 카카오맵 연동</span>
+            </div>
         </div>
     </div>
 
-    <!-- 페이지 이동을 위한 자바스크립트 추가 -->
     <script>
-        document.getElementById('createRoomBtn').addEventListener('click', function() {
-            // page2.html로 이동
-            window.location.href = 'page2.html';
-        });
+        function startApp() {
+            // 다음 카테고리/투표 화면(예: main.html)으로 이동
+            location.href = 'index_vote.html'; 
+        }
     </script>
 </body>
 </html>

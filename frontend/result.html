@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>우리 어디서 만날까? - 최종 결과</title>
+    <title>우리 어디서 만날까? - 투표 완료</title>
     <style>
         * {
             box-sizing: border-box;
@@ -22,70 +22,74 @@
             flex-direction: column;
             width: 100%;
             height: 100vh;
-            padding: 20px;
+            padding: 30px;
         }
-        h2 {
-            font-size: 22px;
-            margin-bottom: 15px;
-            color: #111;
-        }
-        .content-layout {
-            display: flex;
+        .container {
             flex: 1;
-            gap: 20px;
-            height: calc(100vh - 60px);
-        }
-        #map {
-            flex: 2.5;
-            height: 100%;
-            background-color: #e9ecef;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #868e96;
-            font-size: 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        .rank-panel {
-            flex: 1;
-            height: 100%;
+            width: 100%;
             background: #ffffff;
-            padding: 24px;
+            padding: 40px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-        }
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #444;
-            margin-bottom: 12px;
-        }
-        .rank-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
             overflow-y: auto;
+            text-align: center;
         }
-        .rank-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 16px;
-            border: 1px solid #ced4da;
-            border-radius: 8px;
-            background: #fff;
+        .result-header h2 {
+            font-size: 26px;
+            color: #111;
+            margin-bottom: 8px;
+        }
+        .result-header p {
+            font-size: 16px;
+            color: #666;
+        }
+        .winner-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #edf2ff 100%);
+            border: 2px solid #4c6ef5;
+            border-radius: 16px;
+            padding: 32px 20px;
+            margin: 30px 0;
+            position: relative;
+            box-shadow: 0 8px 20px rgba(76, 110, 245, 0.1);
+        }
+        .winner-badge {
+            background: #4c6ef5;
+            color: white;
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+        .winner-card h3 {
+            font-size: 24px;
+            color: #111;
+            margin-bottom: 10px;
+        }
+        .address {
+            color: #6c757d;
+            font-size: 15px;
+            margin-bottom: 20px;
+        }
+        .vote-count-badge {
+            font-weight: 600;
+            color: #0ca678;
+            background: #e6fcf5;
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 10px;
             font-size: 15px;
         }
-        .rank-item.top-choice {
-            border-color: #4c6ef5;
-            background-color: #edf2ff;
-            font-weight: 600;
+        .action-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
-        .share-btn {
+        .primary-btn {
             width: 100%;
             padding: 16px;
             background-color: #4c6ef5;
@@ -97,77 +101,59 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        .share-btn:hover {
+        .primary-btn:hover {
             background-color: #3b5bdb;
         }
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 12px 24px;
+        .secondary-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: #e9ecef;
+            color: #495057;
+            border: none;
             border-radius: 8px;
-            font-size: 15px;
-            display: none;
-            z-index: 1000;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .secondary-btn:hover {
+            background-color: #dee2e6;
         }
     </style>
 </head>
 <body>
 
     <div class="wrapper">
-        <div class="content-layout">
-            <div id="map">지도 영역 (카카오맵/네이버 지도 연동)</div>
+        <div class="container">
+            <div class="result-header">
+                <h2>🎉 투표가 완료되었습니다!</h2>
+                <p>우리 그룹의 최종 중간지점이 결정되었습니다.</p>
+            </div>
 
-            <div class="rank-panel">
-                <div>
-                    <h2>최종 투표 결과</h2>
-                    <div class="section-title">추천 장소 순위 목록</div>
-                    <div class="rank-list">
-                        <div class="rank-item top-choice">
-                            <span>1. 스타벅스 익산점 (다수결)</span>
-                            <span>15표</span>
-                        </div>
-                        <div class="rank-item">
-                            <span>2. 투썸플레이스</span>
-                            <span>7표</span>
-                        </div>
-                        <div class="rank-item">
-                            <span>3. 이디야커피</span>
-                            <span>4표</span>
-                        </div>
-                    </div>
+            <div class="winner-card">
+                <div class="winner-badge">👑 최다 득표 장소</div>
+                <h3 id="winner-name">스타벅스 익산점</h3>
+                <p id="winner-address" class="address">전북 익산시 배산로 123</p>
+                <div class="vote-count-badge">
+                    총 <span id="winner-votes">15</span>표 획득
                 </div>
+            </div>
 
-                <button class="share-btn" onclick="shareLocationLinks()">선택한 장소 지도 링크 복사</button>
+            <div class="action-group">
+                <button class="primary-btn" onclick="openKakaoMap()">카카오맵으로 길찾기</button>
+                <button class="secondary-btn" onclick="goBack()">처음으로 돌아가기</button>
             </div>
         </div>
     </div>
 
-    <div id="toast" class="toast">카카오맵 및 네이버 지도 링크가 복사되었습니다!</div>
-
     <script>
-        function shareLocationLinks() {
-            const kakaoMapUrl = "https://map.kakao.com/?q=스타벅스익산점";
-            const naverMapUrl = "https://map.naver.com/v5/search/스타벅스익산점";
-            
-            const shareText = `[우리 어디서 만날까? 추천 장소]\n- 카카오맵: ${kakaoMapUrl}\n- 네이버지도: ${naverMapUrl}`;
-
-            navigator.clipboard.writeText(shareText).then(() => {
-                showToast();
-            }).catch(err => {
-                alert('링크 복사에 실패했습니다.');
-            });
+        function openKakaoMap() {
+            // 나중에 카카오맵 길찾기 링크나 연동 로직을 넣을 수 있는 곳입니다.
+            alert('카카오맵 길찾기 화면으로 연결됩니다!');
         }
 
-        function showToast() {
-            const toast = document.getElementById('toast');
-            toast.style.display = 'block';
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 2500);
+        function goBack() {
+            location.href = 'index.html';
         }
     </script>
 </body>
