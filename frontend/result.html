@@ -321,7 +321,7 @@
             const name = target.place_name;
             const kakaoMapUrl = "https://map.kakao.com/?q=" + encodeURIComponent(name);
             const naverMapUrl = "https://map.naver.com/v5/search/" + encodeURIComponent(name);
-            const shareText = "[우리 어디서 만날까? 추천 장소]\n- " + name + "\n- 카카오맵: " + kakaoMapUrl + "\n- 네이버지도: " + naverMapUrl;
+            const shareText = "[우리 어디서 만날까? 추천 장소]\n- " + name + "\n- 카카오맵: " + kakaoMapUrl ;
 
             navigator.clipboard.writeText(shareText).then(() => {
                 showToast();
