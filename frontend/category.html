@@ -130,9 +130,9 @@
                     </label>
                     <label class="checkbox-item">
                         <span class="item-label">
-                            <input type="radio" name="category" value="public" onchange="onCategoryChange()"> 공공장소
+                            <input type="radio" name="category" value="station_terminal" onchange="onCategoryChange()"> 역·터미널
                         </span>
-                        <span class="vote-count" id="count-public">0표</span>
+                        <span class="vote-count" id="count-station_terminal">0표</span>
                     </label>
                 </div>
 
@@ -170,7 +170,7 @@
             try {
                 const result = await getCategoryVotes(currentRoomId);
                 const counts = result.counts || {};
-                for (const cat of ["cafe", "restaurant", "public"]) {
+                for (const cat of ["cafe", "restaurant", "station_terminal"]) {
                     document.getElementById("count-" + cat).innerText = (counts[cat] || 0) + "표";
                     const radioInput = document.querySelector('input[value="' + cat + '"]');
                     if (radioInput) {

@@ -8,7 +8,7 @@ router = APIRouter(prefix="/api/rooms/{room_id}", tags=["Result"])
 CATEGORY_CODE = {
     "cafe": "CE7",
     "restaurant": "FD6",
-    "public": "SW8",
+    "station_terminal": "SW8",
 }
 
 
@@ -26,7 +26,7 @@ async def get_result(
         raise HTTPException(status_code=400, detail="참여자가 2명 이상이어야 중간지점을 계산할 수 있습니다.")
 
     if category not in CATEGORY_CODE:
-        raise HTTPException(status_code=400, detail="cafe/restaurant/public 중 하나여야 합니다.")
+        raise HTTPException(status_code=400, detail="cafe/restaurant/station_terminal 중 하나여야 합니다.")
 
     mid = calculate_midpoint([(p.latitude, p.longitude) for p in people])
 
