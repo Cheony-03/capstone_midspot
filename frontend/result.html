@@ -44,6 +44,7 @@
         }
         .rank-panel {
             flex: 1;
+            min-width: 320px;
             height: 100%;
             background: #ffffff;
             padding: 24px;
@@ -69,11 +70,34 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
             padding: 14px 16px;
             border: 1px solid #ced4da;
             border-radius: 8px;
             background: #fff;
             font-size: 15px;
+        }
+        .rank-item > div:first-child {
+            flex: 1;
+            min-width: 0;
+        }
+        .rank-item > div:first-child > span:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .rank-item > div:first-child > span:last-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .rank-item > div:last-child {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .rank-item a, .rank-item button {
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         .rank-item.top-choice {
             border-color: #4c6ef5;
@@ -137,7 +161,7 @@
 
     <div id="toast" class="toast">링크가 복사되었습니다!</div>
 
-    <script src="api.js"></script>
+    <script src="api.js?v=2"></script>
     <script>
         let currentRoomId = null;
         let myParticipantId = null;

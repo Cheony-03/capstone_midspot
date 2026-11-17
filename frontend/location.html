@@ -132,7 +132,7 @@
         </div>
     </div>
 
-    <script src="api.js"></script>
+    <script src="api.js?v=2"></script>
     <script>
         let currentRoomId = null;
         let map = null;
@@ -210,7 +210,7 @@
 
             try {
                 await getRoom(currentRoomId);
-                infoEl.innerText = "방 ID: " + currentRoomId;
+                infoEl.innerText = "방 ID: " + currentRoomId + (isHost(currentRoomId) ? "  👑 방장" : "");
             } catch (err) {
                 infoEl.innerText = "방 조회 실패: " + err.message;
                 infoEl.style.color = "#e03131";
@@ -306,13 +306,31 @@
 
                 listEl.innerHTML = people.map(p =>
                     '<div style="padding: 12px 14px; border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa; font-size: 14px;">' +
-                    '<div style="font-weight: 600;">👤 ' + p.nickname + '</div>' +
-                    '<div style="color: #666; font-size: 13px; margin-top: 4px;">📍 ' + p.address_name + '</div>' +
+                    '<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">' +
+                    '<div style="font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">👤 ' + p.nickname + '</div>' +
+                    (isHost(currentRoomId)
+                        ? '<button type="button" onclick="removeParticipant(\'' + p.participant_id + '\')" style="flex-shrink: 0; padding: 4px 10px; border: 1px solid #ffa8a8; border-radius: 6px; background: #fff; color: #e03131; font-size: 12px; cursor: pointer; white-space: nowrap;">삭제</button>'
+                        : '') +
+                    '</div>' +
+                    '<div style="color: #666; font-size: 13px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📍 ' + p.address_name + '</div>' +
                     '</div>'
                 ).join("");
             } catch (err) {
                 // 폴링 중 일시적 네트워크 오류로 기존 목록이 지워지지 않도록 콘솔에만 출력
                 console.error("참가자 목록 조회 실패:", err);
+            }
+        }
+
+        async function removeParticipant(participantId) {
+            if (!confirm("이 참여자의 출발지 정보를 삭제할까요?")) return;
+            try {
+                await deleteParticipant(currentRoomId, participantId);
+                if (getMyParticipantId() === participantId) {
+                    localStorage.removeItem("myParticipantId");
+                }
+                await refreshParticipants(true);
+            } catch (err) {
+                alert("삭제 실패: " + err.message);
             }
         }
 

@@ -17,11 +17,11 @@ function getMyParticipantId() {
     return localStorage.getItem("myParticipantId");
 }
 
-async function apiRequest(method, path, body = null) {
+async function apiRequest(method, path, body = null, extraHeaders = {}) {
     const url = API_BASE + path;
     const options = {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...extraHeaders },
     };
     if (body) options.body = JSON.stringify(body);
 
@@ -36,7 +36,29 @@ async function apiRequest(method, path, body = null) {
 }
 
 async function createRoom() {
-    return await apiRequest("POST", "/api/rooms");
+    const room = await apiRequest("POST", "/api/rooms");
+    // 방을 만든 브라우저에만 방장 토큰을 보관합니다.
+    if (room.host_token) localStorage.setItem("hostToken:" + room.room_id, room.host_token);
+    return room;
+}
+
+function getHostToken(roomId) {
+    return localStorage.getItem("hostToken:" + roomId);
+}
+
+function isHost(roomId) {
+    return Boolean(getHostToken(roomId));
+}
+
+async function deleteParticipant(roomId, participantId) {
+    const token = getHostToken(roomId);
+    if (!token) throw new Error("방장만 참여자를 삭제할 수 있습니다.");
+    return await apiRequest(
+        "DELETE",
+        `/api/rooms/${roomId}/participants/${participantId}`,
+        null,
+        { "X-Host-Token": token }
+    );
 }
 
 async function getRoom(roomId) {

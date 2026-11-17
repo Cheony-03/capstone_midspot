@@ -74,11 +74,16 @@
             display: flex;
             align-items: center;
             flex: 1;
+            min-width: 0;
+            white-space: nowrap;
         }
         .vote-count {
             font-size: 15px;
             color: #868e96;
             font-weight: 500;
+            white-space: nowrap;
+            margin-left: 12px;
+            flex-shrink: 0;
         }
         .highlight {
             border-color: #4c6ef5;
@@ -149,7 +154,7 @@
         </div>
     </div>
 
-    <script src="api.js"></script>
+    <script src="api.js?v=2"></script>
     <script>
         let currentRoomId = null;
         let myParticipantId = null;
