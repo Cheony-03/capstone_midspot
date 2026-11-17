@@ -33,7 +33,7 @@
             display: flex;
             flex: 1;
             gap: 20px;
-            height: calc(100vh - 60px);
+            min-height: 0;
         }
         #map {
             flex: 2.5;
@@ -60,11 +60,45 @@
             color: #444;
             margin-bottom: 12px;
         }
+        .rank-panel > div:first-child {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
         .rank-list {
             display: flex;
             flex-direction: column;
             gap: 10px;
+            flex: 1;
+            min-height: 0;
             overflow-y: auto;
+            padding-right: 4px;
+        }
+        .mid-overlay {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transform: translateY(-6px);
+        }
+        .mid-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #e03131;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 4px rgba(224, 49, 49, 0.25), 0 2px 6px rgba(0, 0, 0, 0.35);
+        }
+        .mid-label {
+            background: #e03131;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
         .rank-item {
             display: flex;
@@ -168,6 +202,7 @@
         let places = [];
         let topPlaceId = null;
         let currentMidpoint = null;
+        let currentRadius = 0;
         let map = null;
         let markers = [];
         let placePollInterval = null; // 폴링 타이머 변수 추가
@@ -191,19 +226,37 @@
 
             const bounds = new kakao.maps.LatLngBounds();
 
-            // 1. 중간지점 마커 표시
+            // 1. 중간지점 표시 (눈에 잘 띄는 커스텀 오버레이 + 검색 반경 원)
             if (midpoint && Number.isFinite(midpoint.latitude) && Number.isFinite(midpoint.longitude)) {
                 const midCoord = new kakao.maps.LatLng(midpoint.latitude, midpoint.longitude);
-                const midMarker = new kakao.maps.Marker({
+
+                if (currentRadius > 0) {
+                    const radiusCircle = new kakao.maps.Circle({
+                        map: map,
+                        center: midCoord,
+                        radius: currentRadius,
+                        strokeWeight: 2,
+                        strokeColor: '#e03131',
+                        strokeOpacity: 0.55,
+                        strokeStyle: 'dashed',
+                        fillColor: '#e03131',
+                        fillOpacity: 0.05,
+                    });
+                    markers.push(radiusCircle);
+                }
+
+                const midContent = document.createElement('div');
+                midContent.className = 'mid-overlay';
+                midContent.innerHTML = '<span class="mid-label">📍 중간지점</span><span class="mid-dot"></span>';
+
+                const midOverlay = new kakao.maps.CustomOverlay({
                     map: map,
                     position: midCoord,
+                    content: midContent,
+                    yAnchor: 1,
+                    zIndex: 10,
                 });
-                
-                const midWindow = new kakao.maps.InfoWindow({
-                    content: '<div style="padding:5px;font-size:12px;font-weight:bold;color:#4c6ef5;">📍 중간지점</div>'
-                });
-                midWindow.open(map, midMarker);
-                markers.push(midMarker);
+                markers.push(midOverlay);
                 bounds.extend(midCoord);
             }
 
@@ -271,6 +324,7 @@
             try {
                 const result = await getResult(currentRoomId, category, 1000);
                 currentMidpoint = result.midpoint;
+                currentRadius = result.radius || 0;
                 places = result.places || [];
 
                 document.getElementById("midpointInfo").innerText =
