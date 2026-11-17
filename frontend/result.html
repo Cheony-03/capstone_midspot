@@ -167,7 +167,8 @@
 
             const bounds = new kakao.maps.LatLngBounds();
 
-            if (midpoint && midpoint.latitude && midpoint.longitude) {
+            // 1. 중간지점 마커 표시
+            if (midpoint && Number.isFinite(midpoint.latitude) && Number.isFinite(midpoint.longitude)) {
                 const midCoord = new kakao.maps.LatLng(midpoint.latitude, midpoint.longitude);
                 const midMarker = new kakao.maps.Marker({
                     map: map,
@@ -269,7 +270,12 @@
         async function refreshPlaceVotes() {
             const rankList = document.getElementById("rankList");
 
-            if (places.length === 0) return;
+            if (places.length === 0) {
+                // 장소가 없어도 중간지점은 지도에 표시합니다.
+                updateResultMap(currentMidpoint, [], null);
+                rankList.innerHTML = '<div style="text-align: center; color: #868e96; padding: 30px;">주변에 검색된 장소가 없습니다.</div>';
+                return;
+            }
 
             let votes = {};
             let top = null;

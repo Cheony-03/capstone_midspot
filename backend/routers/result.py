@@ -53,6 +53,7 @@ async def get_result(
     search_error = None
     used_radius = radius
     fallback = False
+    fallback_category = None
     message = None
     label = CATEGORY_LABEL[category]
     particle = CATEGORY_PARTICLE[category]
@@ -89,7 +90,28 @@ async def get_result(
                     f"가장 가까운 {label}({nearest['place_name']}, 약 {nearest['distance'] / 1000:.1f}km)부터 보여드립니다."
                 )
             else:
-                message = f"주변 {NEAREST_RADIUS // 1000}km 안에 {label}{particle} 없습니다."
+                # 선택한 카테고리가 20km 안에 없으면 다른 카테고리에서 가장 가까운 곳을 대신 보여줌
+                for other in CATEGORY_CODE:
+                    if other == category:
+                        continue
+                    other_places = await search_places(
+                        lat=mid["latitude"],
+                        lng=mid["longitude"],
+                        category_code=CATEGORY_CODE[other],
+                        radius=NEAREST_RADIUS,
+                    )
+                    if other_places:
+                        places = other_places
+                        fallback_category = other
+                        nearest = other_places[0]
+                        message = (
+                            f"주변 {NEAREST_RADIUS // 1000}km 안에 {label}{particle} 없어 "
+                            f"가장 가까운 {CATEGORY_LABEL[other]}({nearest['place_name']}, "
+                            f"약 {nearest['distance'] / 1000:.1f}km)을(를) 대신 보여드립니다."
+                        )
+                        break
+                if not places:
+                    message = f"주변 {NEAREST_RADIUS // 1000}km 안에 {label}{particle} 없습니다."
     except Exception as e:
         places = []
         search_error = f"장소 검색 실패: {str(e)} (KAKAO_REST_API_KEY 확인 필요)"
@@ -102,6 +124,7 @@ async def get_result(
         "radius": used_radius,
         "places": places,
         "fallback": fallback,
+        "fallback_category": fallback_category,
         "message": message,
         "search_error": search_error,
     }
