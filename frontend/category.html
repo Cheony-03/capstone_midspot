@@ -128,11 +128,12 @@
                         </span>
                         <span class="vote-count" id="count-restaurant">0표</span>
                     </label>
+                    <!-- 백엔드 허용값인 public으로 맞춤 -->
                     <label class="checkbox-item">
                         <span class="item-label">
-                            <input type="radio" name="category" value="station_terminal" onchange="onCategoryChange()"> 지하철역
+                            <input type="radio" name="category" value="station" onchange="onCategoryChange()"> 기차역
                         </span>
-                        <span class="vote-count" id="count-station_terminal">0표</span>
+                        <span class="vote-count" id="count-station">0표</span>
                     </label>
                 </div>
 
@@ -152,6 +153,7 @@
     <script>
         let currentRoomId = null;
         let myParticipantId = null;
+        let votePollInterval = null; // 폴링 관리용 변수 추가
 
         window.addEventListener("DOMContentLoaded", async () => {
             currentRoomId = getCurrentRoomId();
@@ -163,15 +165,31 @@
                 return;
             }
 
+            // 1. 최초 데이터 로드
             await refreshCategoryVotes();
+
+            // 2. [폴링 기능 추가] 3초마다 자동으로 투표 현황 갱신
+            if (votePollInterval) clearInterval(votePollInterval);
+            votePollInterval = setInterval(async () => {
+                await refreshCategoryVotes();
+            }, 3000); // 3초 주기
+        });
+
+        // 페이지를 떠날 때 타이머 정리
+        window.addEventListener("beforeunload", () => {
+            if (votePollInterval) clearInterval(votePollInterval);
         });
 
         async function refreshCategoryVotes() {
             try {
                 const result = await getCategoryVotes(currentRoomId);
                 const counts = result.counts || {};
-                for (const cat of ["cafe", "restaurant", "station_terminal"]) {
-                    document.getElementById("count-" + cat).innerText = (counts[cat] || 0) + "표";
+                // 백엔드 키값과 일치하는 cafe, restaurant, public 순회
+                for (const cat of ["cafe", "restaurant", "station"]) {
+                    const countEl = document.getElementById("count-" + cat);
+                    if (countEl) {
+                        countEl.innerText = (counts[cat] || 0) + "표";
+                    }
                     const radioInput = document.querySelector('input[value="' + cat + '"]');
                     if (radioInput) {
                         const item = radioInput.closest(".checkbox-item");
@@ -188,11 +206,12 @@
             const selected = document.querySelector('input[name="category"]:checked');
             if (!selected) return;
             if (!myParticipantId) { alert("출발지를 먼저 입력해주세요."); return; }
+            if (!currentRoomId) { alert("방 정보가 없습니다."); return; }
 
             try {
                 await voteCategory(currentRoomId, {
                     participant_id: myParticipantId,
-                    category: selected.value,
+                    category: selected.value, // "cafe", "restaurant", "public" 전송
                 });
                 await refreshCategoryVotes();
             } catch (err) {
@@ -204,7 +223,6 @@
             if (!currentRoomId) { alert("방 정보가 없습니다."); return; }
             const selected = document.querySelector('input[name="category"]:checked');
             const category = selected ? selected.value : "cafe";
-            // 🛠️ 수정 포인트: category.html이 아니라 result.html로 이동하도록 수정함
             location.href = "result.html?room=" + currentRoomId + "&category=" + category;
         }
     </script>
