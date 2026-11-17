@@ -117,6 +117,7 @@
     <div class="wrapper">
         <h2 style="margin-bottom: 10px;">최종 결과</h2>
         <div id="midpointInfo" style="font-size: 14px; color: #495057; margin-bottom: 12px; background: #e7f5ff; padding: 10px 14px; border-radius: 8px;">결과를 불러오는 중...</div>
+        <div id="fallbackNotice" style="display: none; font-size: 14px; color: #b35c00; margin-bottom: 12px; background: #fff4e6; padding: 10px 14px; border-radius: 8px;"></div>
 
         <div class="content-layout">
             <div id="map"></div>
@@ -241,6 +242,14 @@
                 document.getElementById("midpointInfo").innerText =
                     "📍 중간지점: 위도 " + currentMidpoint.latitude.toFixed(5) + ", 경도 " + currentMidpoint.longitude.toFixed(5) +
                     "  (참여자 " + result.participant_count + "명, 카테고리: " + result.category + ", 반경: " + (result.radius/1000).toFixed(1) + "km)";
+
+                const noticeEl = document.getElementById("fallbackNotice");
+                if (result.message) {
+                    noticeEl.innerText = "ℹ️ " + result.message;
+                    noticeEl.style.display = "block";
+                } else {
+                    noticeEl.style.display = "none";
+                }
 
                 await refreshPlaceVotes();
             } catch (err) {

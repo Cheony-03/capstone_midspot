@@ -11,6 +11,23 @@ CATEGORY_CODE = {
     "station_terminal": "SW8",
 }
 
+CATEGORY_LABEL = {
+    "cafe": "카페",
+    "restaurant": "식당",
+    "station_terminal": "지하철역",
+}
+
+# 조사 처리용 (카페가 / 식당이 / 지하철역이)
+CATEGORY_PARTICLE = {
+    "cafe": "가",
+    "restaurant": "이",
+    "station_terminal": "이",
+}
+
+# 반경을 넓혀가며 찾는 상한과, 그래도 없을 때 "가장 가까운 곳"을 찾는 상한 (카카오 최대 20km)
+MAX_RADIUS = 10000
+NEAREST_RADIUS = 20000
+
 
 @router.get("/result")
 async def get_result(
@@ -35,6 +52,10 @@ async def get_result(
     places = []
     search_error = None
     used_radius = radius
+    fallback = False
+    message = None
+    label = CATEGORY_LABEL[category]
+    particle = CATEGORY_PARTICLE[category]
     try:
         places = await search_places(
             lat=mid["latitude"],
@@ -42,14 +63,33 @@ async def get_result(
             category_code=CATEGORY_CODE[category],
             radius=used_radius,
         )
-        while not places and used_radius < 10000:
-            used_radius = min(used_radius * 2, 10000)
+        while not places and used_radius < MAX_RADIUS:
+            used_radius = min(used_radius * 2, MAX_RADIUS)
             places = await search_places(
                 lat=mid["latitude"],
                 lng=mid["longitude"],
                 category_code=CATEGORY_CODE[category],
                 radius=used_radius,
             )
+
+        # 반경을 최대한 넓혀도 없으면, 거리순 정렬로 가장 가까운 곳을 안내함
+        if not places:
+            fallback = True
+            used_radius = NEAREST_RADIUS
+            places = await search_places(
+                lat=mid["latitude"],
+                lng=mid["longitude"],
+                category_code=CATEGORY_CODE[category],
+                radius=used_radius,
+            )
+            if places:
+                nearest = places[0]
+                message = (
+                    f"주변 {MAX_RADIUS // 1000}km 안에 {label}{particle} 없어 "
+                    f"가장 가까운 {label}({nearest['place_name']}, 약 {nearest['distance'] / 1000:.1f}km)부터 보여드립니다."
+                )
+            else:
+                message = f"주변 {NEAREST_RADIUS // 1000}km 안에 {label}{particle} 없습니다."
     except Exception as e:
         places = []
         search_error = f"장소 검색 실패: {str(e)} (KAKAO_REST_API_KEY 확인 필요)"
@@ -61,5 +101,7 @@ async def get_result(
         "category": category,
         "radius": used_radius,
         "places": places,
+        "fallback": fallback,
+        "message": message,
         "search_error": search_error,
     }
