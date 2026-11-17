@@ -145,6 +145,7 @@
         let currentMidpoint = null;
         let map = null;
         let markers = [];
+        let placePollInterval = null; // 폴링 타이머 변수 추가
 
         // 지도 초기화 함수
         function initMap(lat = 37.566826, lng = 126.978656) {
@@ -160,13 +161,11 @@
         function updateResultMap(midpoint, placeList, topId) {
             if (!map) return;
 
-            // 기존 마커 초기화
             markers.forEach(m => m.setMap(null));
             markers = [];
 
             const bounds = new kakao.maps.LatLngBounds();
 
-            // 1. 중간지점 마커 표시
             if (midpoint && midpoint.latitude && midpoint.longitude) {
                 const midCoord = new kakao.maps.LatLng(midpoint.latitude, midpoint.longitude);
                 const midMarker = new kakao.maps.Marker({
@@ -182,7 +181,6 @@
                 bounds.extend(midCoord);
             }
 
-            // 2. 주변 추천 장소 마커 표시
             placeList.forEach((p, idx) => {
                 const coord = new kakao.maps.LatLng(p.y, p.x);
                 const isTop = (p.place_name === topId);
@@ -201,14 +199,12 @@
                 bounds.extend(coord);
             });
 
-            // 모든 마커가 보이도록 영역 재설정
             if (markers.length > 0) {
                 map.setBounds(bounds);
             }
         }
 
         window.addEventListener("DOMContentLoaded", async () => {
-            // 카카오 지도 SDK 비동기 로드 후 안전하게 실행
             kakao.maps.load(() => {
                 initMap();
             });
@@ -224,7 +220,19 @@
             const params = new URLSearchParams(window.location.search);
             const category = params.get("category") || "cafe";
 
+            // 1. 최초 결과 로드
             await loadResult(category);
+
+            // 2. [폴링 기능 추가] 3초마다 자동으로 투표 현황 및 순위 갱신
+            if (placePollInterval) clearInterval(placePollInterval);
+            placePollInterval = setInterval(async () => {
+                await refreshPlaceVotes();
+            }, 3000); // 3초 주기
+        });
+
+        // 페이지 이탈 시 폴링 타이머 정리
+        window.addEventListener("beforeunload", () => {
+            if (placePollInterval) clearInterval(placePollInterval);
         });
 
         async function loadResult(category) {
@@ -247,10 +255,7 @@
         async function refreshPlaceVotes() {
             const rankList = document.getElementById("rankList");
 
-            if (places.length === 0) {
-                rankList.innerHTML = '<div style="text-align: center; color: #868e96; padding: 30px;">주변에 검색된 장소가 없습니다.</div>';
-                return;
-            }
+            if (places.length === 0) return;
 
             let votes = {};
             let top = null;
@@ -269,61 +274,50 @@
                 return vb - va;
             });
 
-            // 지도 마커 및 영역 업데이트 실행
             updateResultMap(currentMidpoint, sorted, topPlaceId);
 
             rankList.innerHTML = sorted.map((p, i) => {
-            const v = votes[p.place_name] || 0;
-            const isTop = (p.place_name === top);
-            const rankCls = i === 0 ? "top-choice" : "";
-            const mapUrl = p.kakao_map_url || `https://map.kakao.com/link/map/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
+                const v = votes[p.place_name] || 0;
+                const isTop = (p.place_name === top);
+                const rankCls = i === 0 ? "top-choice" : "";
+                const mapUrl = p.kakao_map_url || `https://map.kakao.com/link/map/${encodeURIComponent(p.place_name)},${p.y},${p.x}`;
 
-            return '<div class="rank-item ' + rankCls + '">' +
-            '<div style="display: flex; flex-direction: column; gap: 2px;">' +
-            '<span>' + (i + 1) + '. ' + p.place_name + (isTop ? ' (다수결 ⭐)' : '') + '</span>' +
-            '<span style="font-size: 12px; color: #868e96;">' + (p.road_address_name || p.address_name) + '</span>' +
-            '</div>' +
-            '<div style="display: flex; align-items: center; gap: 8px;">' +
-            '<span style="color: #3b5bdb; font-weight: 600;">' + v + '표</span>' +
-            // 🗺️ 카카오맵 바로 연결 버튼 추가
-            '<a href="' + mapUrl + '" target="_blank" style="padding: 6px 10px; border: 1px solid #fee500; border-radius: 6px; background: #fee500; color: #333; font-size: 12px; text-decoration: none; font-weight: bold;">카카오맵</a>' +
-            '<button onclick="voteForPlace(\'' + p.place_name.replace(/'/g, "\\'") + '\')" style="padding: 6px 12px; border: 1px solid #51cf66; border-radius: 6px; background: #fff; color: #37b24d; font-size: 13px; cursor: pointer;">투표</button>' +
-            '</div>' +
-             '</div>';
-        }).join("");
+                return '<div class="rank-item ' + rankCls + '">' +
+                '<div style="display: flex; flex-direction: column; gap: 2px;">' +
+                '<span>' + (i + 1) + '. ' + p.place_name + (isTop ? ' (다수결 ⭐)' : '') + '</span>' +
+                '<span style="font-size: 12px; color: #868e96;">' + (p.road_address_name || p.address_name) + '</span>' +
+                '</div>' +
+                '<div style="display: flex; align-items: center; gap: 8px;">' +
+                '<span style="color: #3b5bdb; font-weight: 600;">' + v + '표</span>' +
+                '<a href="' + mapUrl + '" target="_blank" style="padding: 6px 10px; border: 1px solid #fee500; border-radius: 6px; background: #fee500; color: #333; font-size: 12px; text-decoration: none; font-weight: bold;">카카오맵</a>' +
+                '<button onclick="voteForPlace(\'' + p.place_name.replace(/'/g, "\\'") + '\')" style="padding: 6px 12px; border: 1px solid #51cf66; border-radius: 6px; background: #fff; color: #37b24d; font-size: 13px; cursor: pointer;">투표</button>' +
+                '</div>' +
+                '</div>';
+            }).join("");
         }
 
-       async function voteForPlace(placeName) {
-    if (!myParticipantId) { alert("출발지를 먼저 입력해주세요."); return; }
-    try {
-        // 1. 백엔드로 투표 요청 전송
-        await votePlace(currentRoomId, {
-            participant_id: myParticipantId,
-            place_id: placeName,
-            place_name: placeName,
-        });
+        async function voteForPlace(placeName) {
+            if (!myParticipantId) { alert("출발지를 먼저 입력해주세요."); return; }
+            try {
+                await votePlace(currentRoomId, {
+                    participant_id: myParticipantId,
+                    place_id: placeName,
+                    place_name: placeName,
+                });
 
-        // 2. 투표 직후 백엔드에서 최신 투표 결과(counts, top)와 장소 목록을 한 번에 다시 불러와 갱신
-        const result = await getResult(currentRoomId, new URLSearchParams(window.location.search).get("category") || "cafe", 1000);
-        places = result.places || [];
-
-        // 3. 화면 리렌더링 실행
-        await refreshPlaceVotes();
-        showToast();
-    } catch (err) {
-        alert("투표 실패: " + err.message);
-    }
-}
+                await refreshPlaceVotes();
+                showToast();
+            } catch (err) {
+                alert("투표 실패: " + err.message);
+            }
+        }
 
         function shareLocationLinks() {
             const target = places.find(p => p.place_name === topPlaceId) || places[0];
             if (!target) { alert("공유할 장소가 없습니다."); return; }
             const name = target.place_name;
             
-            // 카카오맵 정확한 위치 URL
             const kakaoMapUrl = target.kakao_map_url || target.place_url || ("https://map.kakao.com/link/map/" + encodeURIComponent(name) + "," + target.y + "," + target.x);
-            
-            // 카카오맵 링크만 깔끔하게 공유 텍스트 구성
             const shareText = "[우리 어디서 만날까? 추천 장소]\n- " + name + "\n- 카카오맵 바로보기: " + kakaoMapUrl;
 
             navigator.clipboard.writeText(shareText).then(() => {
