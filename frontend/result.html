@@ -176,6 +176,20 @@
         <h2 style="margin-bottom: 10px;">최종 결과</h2>
         <div id="midpointInfo" style="font-size: 14px; color: #495057; margin-bottom: 12px; background: #e7f5ff; padding: 10px 14px; border-radius: 8px;">결과를 불러오는 중...</div>
         <div id="fallbackNotice" style="display: none; font-size: 14px; color: #b35c00; margin-bottom: 12px; background: #fff4e6; padding: 10px 14px; border-radius: 8px;"></div>
+        <div id="originPanel" style="display: none; font-size: 13px; color: #495057; margin-bottom: 12px; background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px 14px; border-radius: 8px;">
+            <div style="font-weight: 600; margin-bottom: 6px;">🚩 참여자 출발지</div>
+            <div id="originList" style="display: flex; flex-wrap: wrap; gap: 6px 14px;"></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+            <label for="radiusSelect" style="font-size: 13px; font-weight: 600; color: #495057; white-space: nowrap;">🔍 검색 반경</label>
+            <select id="radiusSelect" onchange="changeRadius()" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 13px; background: #fff; cursor: pointer;">
+                <option value="1000">1km</option>
+                <option value="2000">2km</option>
+                <option value="3000">3km</option>
+                <option value="5000">5km</option>
+            </select>
+            <span id="radiusHint" style="font-size: 12px; color: #868e96;">중간지점 기준으로 주변 장소를 다시 찾습니다.</span>
+        </div>
 
         <div class="content-layout">
             <div id="map"></div>
@@ -203,6 +217,8 @@
         let topPlaceId = null;
         let currentMidpoint = null;
         let currentRadius = 0;
+        let selectedRadius = 1000;
+        let currentCategory = "cafe";
         let map = null;
         let markers = [];
         let placePollInterval = null; // 폴링 타이머 변수 추가
@@ -303,6 +319,7 @@
 
             const params = new URLSearchParams(window.location.search);
             const category = params.get("category") || "cafe";
+            currentCategory = category;
 
             // 1. 최초 결과 로드
             await loadResult(category);
@@ -322,7 +339,7 @@
         async function loadResult(category) {
             const rankList = document.getElementById("rankList");
             try {
-                const result = await getResult(currentRoomId, category, 1000);
+                const result = await getResult(currentRoomId, category, selectedRadius);
                 currentMidpoint = result.midpoint;
                 currentRadius = result.radius || 0;
                 places = result.places || [];
@@ -330,6 +347,18 @@
                 document.getElementById("midpointInfo").innerText =
                     "📍 중간지점: 위도 " + currentMidpoint.latitude.toFixed(5) + ", 경도 " + currentMidpoint.longitude.toFixed(5) +
                     "  (참여자 " + result.participant_count + "명, 카테고리: " + result.category + ", 반경: " + (result.radius/1000).toFixed(1) + "km)";
+
+                const originPanel = document.getElementById("originPanel");
+                const originList = document.getElementById("originList");
+                const people = result.participants || [];
+                if (people.length > 0) {
+                    originList.innerHTML = people.map(p =>
+                        '<span style="white-space: nowrap;">👤 ' + p.nickname + ' · ' + p.address_name + '</span>'
+                    ).join("");
+                    originPanel.style.display = "block";
+                } else {
+                    originPanel.style.display = "none";
+                }
 
                 const noticeEl = document.getElementById("fallbackNotice");
                 if (result.message) {
@@ -343,6 +372,14 @@
             } catch (err) {
                 rankList.innerHTML = '<div style="text-align: center; color: #e03131; padding: 30px;">결과 조회 실패: ' + err.message + '<br><br>※ 카카오 API 키가 없으면 장소 검색이 실패합니다.</div>';
             }
+        }
+
+        async function changeRadius() {
+            const select = document.getElementById("radiusSelect");
+            selectedRadius = Number(select.value) || 1000;
+            document.getElementById("radiusHint").innerText = "반경 " + (selectedRadius / 1000) + "km로 다시 검색 중...";
+            await loadResult(currentCategory);
+            document.getElementById("radiusHint").innerText = "중간지점 기준으로 주변 장소를 다시 찾습니다.";
         }
 
         async function refreshPlaceVotes() {
