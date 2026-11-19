@@ -34,6 +34,7 @@
             flex: 1;
             gap: 20px;
             min-height: 0;
+            position: relative;
         }
         #map {
             flex: 2.5;
@@ -193,6 +194,7 @@
 
         <div class="content-layout">
             <div id="map"></div>
+            <button type="button" id="midBtn" onclick="panToMidpoint()" title="중간지점으로 이동" style="position: absolute; left: 24px; bottom: 24px; z-index: 5; padding: 10px 16px; border: none; border-radius: 999px; background: #e03131; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(224,49,49,0.4); white-space: nowrap;">📍 중간지점으로</button>
 
             <div class="rank-panel">
                 <div>
@@ -219,6 +221,7 @@
         let currentRadius = 0;
         let selectedRadius = 1000;
         let currentCategory = "cafe";
+        let fitBoundsOnce = true;
         let map = null;
         let markers = [];
         let placePollInterval = null; // 폴링 타이머 변수 추가
@@ -234,7 +237,8 @@
         }
 
         // 지도에 중간지점 및 추천 장소 마커 표시
-        function updateResultMap(midpoint, placeList, topId) {
+        // fitBounds가 true일 때만 지도 영역을 다시 맞춥니다(폴링으로 화면이 되돌아가지 않도록).
+        function updateResultMap(midpoint, placeList, topId, fitBounds = false) {
             if (!map) return;
 
             markers.forEach(m => m.setMap(null));
@@ -294,7 +298,7 @@
                 bounds.extend(coord);
             });
 
-            if (markers.length > 0) {
+            if (fitBounds && markers.length > 0) {
                 map.setBounds(bounds);
             }
         }
@@ -343,6 +347,7 @@
                 currentMidpoint = result.midpoint;
                 currentRadius = result.radius || 0;
                 places = result.places || [];
+                fitBoundsOnce = true;
 
                 document.getElementById("midpointInfo").innerText =
                     "📍 중간지점: 위도 " + currentMidpoint.latitude.toFixed(5) + ", 경도 " + currentMidpoint.longitude.toFixed(5) +
@@ -374,6 +379,12 @@
             }
         }
 
+        // 지도를 중간지점으로 되돌립니다.
+        function panToMidpoint() {
+            if (!map || !currentMidpoint) { alert("중간지점 정보가 없습니다."); return; }
+            map.panTo(new kakao.maps.LatLng(currentMidpoint.latitude, currentMidpoint.longitude));
+        }
+
         async function changeRadius() {
             const select = document.getElementById("radiusSelect");
             selectedRadius = Number(select.value) || 1000;
@@ -387,7 +398,8 @@
 
             if (places.length === 0) {
                 // 장소가 없어도 중간지점은 지도에 표시합니다.
-                updateResultMap(currentMidpoint, [], null);
+                updateResultMap(currentMidpoint, [], null, fitBoundsOnce);
+                fitBoundsOnce = false;
                 rankList.innerHTML = '<div style="text-align: center; color: #868e96; padding: 30px;">주변에 검색된 장소가 없습니다.</div>';
                 return;
             }
@@ -409,7 +421,8 @@
                 return vb - va;
             });
 
-            updateResultMap(currentMidpoint, sorted, topPlaceId);
+            updateResultMap(currentMidpoint, sorted, topPlaceId, fitBoundsOnce);
+            fitBoundsOnce = false;
 
             rankList.innerHTML = sorted.map((p, i) => {
                 const v = votes[p.place_name] || 0;
