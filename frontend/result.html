@@ -373,6 +373,9 @@
                     noticeEl.style.display = "none";
                 }
 
+                document.getElementById("radiusHint").innerText =
+                    "반경 " + (currentRadius / 1000).toFixed(1) + "km · " + places.length + "곳";
+
                 await refreshPlaceVotes();
             } catch (err) {
                 rankList.innerHTML = '<div style="text-align: center; color: #e03131; padding: 30px;">결과 조회 실패: ' + err.message + '<br><br>※ 카카오 API 키가 없으면 장소 검색이 실패합니다.</div>';
@@ -390,7 +393,6 @@
             selectedRadius = Number(select.value) || 1000;
             document.getElementById("radiusHint").innerText = "반경 " + (selectedRadius / 1000) + "km로 다시 검색 중...";
             await loadResult(currentCategory);
-            document.getElementById("radiusHint").innerText = "중간지점 기준으로 주변 장소를 다시 찾습니다.";
         }
 
         async function refreshPlaceVotes() {
